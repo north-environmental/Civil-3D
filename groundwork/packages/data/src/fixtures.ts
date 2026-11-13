@@ -96,3 +96,14 @@ export function createHostServices(dataDir: string): HostServices {
     },
   };
 }
+
+/** Write a fixture folder (site.json, DEM sidecar, ordinance.json, provenance.json). */
+export function writeFixture(dir: string, fixture: import('@groundwork/core').SiteFixture, dem: Grid, ordinance: OrdinanceSection[]): void {
+  fs.mkdirSync(dir, { recursive: true });
+  const round = (v: unknown): unknown =>
+    typeof v === 'number' ? Math.round(v * 1000) / 1000 : Array.isArray(v) ? v.map(round) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, round(x)])) : v;
+  fs.writeFileSync(path.join(dir, 'site.json'), JSON.stringify(round(fixture), null, 1));
+  fs.writeFileSync(path.join(dir, fixture.terrain.file), Buffer.from(dem.data.buffer, dem.data.byteOffset, dem.data.byteLength));
+  fs.writeFileSync(path.join(dir, 'ordinance.json'), JSON.stringify({ sections: ordinance }, null, 1));
+  fs.writeFileSync(path.join(dir, 'provenance.json'), JSON.stringify(fixture.provenance, null, 1));
+}

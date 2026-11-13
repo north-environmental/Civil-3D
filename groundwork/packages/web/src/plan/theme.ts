@@ -63,7 +63,7 @@ export const DARK: Palette = {
   flood: 'rgba(80,140,220,0.18)',
   constraint: '#3fb6a8',
   asBuilt: '#d67ad2',
-  contourMinor: 'rgba(141,117,87,0.45)',
+  contourMinor: 'rgba(150,126,94,0.62)',
   contourIndex: 'rgba(176,146,106,0.85)',
   propMinor: 'rgba(230,225,214,0.5)',
   propIndex: 'rgba(245,240,228,0.95)',

@@ -24,6 +24,8 @@ export type Scene = {
   palette: Palette;
   selection: string | null;
   existingContours: ContourSet[] | null;
+  /** Drawn right after the grid, under everything else (imagery, cut/fill raster). */
+  underlays?: Overlay[];
   /** Extra layers drawn between the site base and the labels (design objects, envelopes, grading). */
   overlays: Overlay[];
   /** Render-mode extras */
@@ -181,7 +183,7 @@ function drawContours(ctx: CanvasRenderingContext2D, v: View, sets: ContourSet[]
       for (const line of c.lines) pathRing(ctx, v, line, false);
     }
     ctx.strokeStyle = pass === 1 ? index : minor;
-    ctx.lineWidth = pass === 1 ? 1.1 : 0.6;
+    ctx.lineWidth = pass === 1 ? 1.15 : 0.75;
     ctx.stroke();
   }
   if (labels) {
@@ -259,6 +261,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
   ctx.fillRect(0, 0, v.w, v.h);
   drawGrid(ctx, v, pal);
   const labels: LabelReq[] = [];
+  for (const u of scene.underlays ?? []) u(ctx, v, labels);
 
   if (site) {
     if (L.districts) {

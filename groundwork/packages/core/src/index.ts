@@ -7,3 +7,6 @@ export * from './zoning/rules';
 export * from './checks/assumptions';
 export * from './commands';
 export * from './zoning/edges';
+export * from './site/terrain';
+export * from './zoning/envelopes';
+export * from './testing/fixtures';

@@ -3,16 +3,19 @@
 _Update after every meaningful step. Newest status at the top._
 
 ## Current phase
-Phase 1: Site data + plan view (in progress)
+Phase 2: Zoning engine (in progress)
 
 ## Last verify result
-2026-11-13 — `npm run verify` green (typecheck, lint, 6 unit tests, build, 3 e2e smoke tests, screenshots).
+2026-11-13 — `npm run verify` green (typecheck, lint, 17 unit tests, build, 5 e2e tests, 3 screenshots).
 
 ## Done
 - [x] Phase 0: Foundations
   - [x] verify passes
   - [x] Screenshot of the app shell looks like a real product (`docs/screens/00-shell-empty.png`)
-- [ ] Phase 1: Site data + plan view
+- [x] Phase 1: Site data + plan view
+  - [x] Parcel area within ±5% of ~110 ac (synthetic parcel 109.6 ac; flagged SYNTHETIC)
+  - [x] DEM pre-development: synthetic terrain, persistent "SYNTHETIC SITE DATA · SYNTHETIC TERRAIN" badge
+  - [x] Screenshot (`01-site-plan.png`, `01-site-plan-asbuilt.png`)
 - [ ] Phase 2: Zoning engine
 - [ ] Phase 3: Layout engine (test fit)
 - [ ] Phase 4: MCP server
@@ -21,9 +24,9 @@ Phase 1: Site data + plan view (in progress)
 - [ ] Phase 7: Docs and hardening
 
 ## Next 3 steps
-1. Synthetic fixture generator + `scripts/fetch-site-data.ts` (live sources, untested here) + `load_site` / `get_site_context`
-2. Plan view: parcel, roads, districts, constraints, contours, as-built; status bar elevation
-3. Phase 2: envelopes + zoning checks
+1. Zoning commands (get_zoning_rules, get_ordinance_text, set/confirm), checks framework, Checks panel
+2. Envelope overlay with citation tooltips on setback lines
+3. Phase 3: layout engine
 
 ## Data source log
 Build environment: cloud sandbox with restricted egress. Every data host below was tried **once** on 2026-11-13 and
@@ -47,9 +50,11 @@ Run `npm run fetch-site-data` on a machine with internet access to replace it wi
 | File | Date | Issues found | Fixed? |
 |---|---|---|---|
 | 00-shell-empty.png | 2026-11-13 | None blocking. Shell reads as a product: top bar, layers, tabs, status bar, command line, empty state. | n/a |
+| 01-site-plan-asbuilt.png | 2026-11-13 | Minor (1 ft) contours too faint to read at site zoom. Labels do not overlap; roads, districts, wetland, as-built reference, scale bar, north arrow, coordinates and elevation all read correctly. | Yes: raised minor-contour contrast |
 
 ## Known issues
-- Live data fetch script cannot be exercised in this sandbox (all hosts denied).
+- Live data fetch script (`npm run fetch-site-data`) cannot be exercised in this sandbox (all hosts denied); it is untested against the live services.
+- Imagery layer code path is untested (no cached tiles in the synthetic fixture).
 
 ## Blocked
 (nothing)

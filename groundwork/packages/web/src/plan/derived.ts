@@ -16,7 +16,10 @@ export function ensureExistingContours(dem: Grid | null): void {
   derived.set({ contoursFor: dem });
   callWorker<ContourSet[]>('existingContours', { dem })
     .then((sets) => {
-      if (derived.get().contoursFor === dem) derived.set({ existingContours: sets });
+      if (derived.get().contoursFor === dem) {
+        derived.set({ existingContours: sets });
+        ((window as any).__gw ??= {}).contoursReady = true;
+      }
     })
     .catch(() => undefined);
 }

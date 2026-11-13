@@ -24,6 +24,16 @@ async function main() {
     };
     await page.waitForSelector('[data-testid="topbar"]');
     await shot('00-shell-empty.png');
+
+    // Phase 1: site data + plan view
+    await page.click('[data-testid="load-demo-site"]');
+    await page.waitForSelector('[data-testid="synthetic-badge"]');
+    await page.waitForFunction(() => (window as any).__gw?.contoursReady === true, undefined, { timeout: 30_000 });
+    await page.mouse.move(900, 520);
+    await shot('01-site-plan.png');
+    await page.keyboard.press('b');
+    await shot('01-site-plan-asbuilt.png');
+    await page.keyboard.press('b');
     await page.close();
   } finally {
     await browser.close();

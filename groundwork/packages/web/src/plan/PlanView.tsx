@@ -3,6 +3,7 @@ import type { Pt } from '@groundwork/core';
 import { app, useApp } from '../lib/app';
 import { derived, ensureExistingContours } from './derived';
 import { type View, drawPlan, fitView, s2w } from './draw';
+import { drawImagery } from './imagery';
 import { buildOverlays } from './overlays';
 import { DARK, LIGHT } from './theme';
 import { attachInteractions } from './interact';
@@ -58,6 +59,7 @@ export function PlanView({ renderMode = false, onDrawn }: { renderMode?: boolean
         palette: s.theme === 'light' ? LIGHT : DARK,
         selection: s.selection,
         existingContours: derived.get().existingContours,
+        underlays: site && s.layers.imagery ? [(c, vw) => drawImagery(c, vw, site, h.redraw)] : [],
         overlays: buildOverlays(s),
         showChrome: true,
       });
