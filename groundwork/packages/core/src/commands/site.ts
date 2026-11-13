@@ -1,6 +1,6 @@
 /** Site commands: load_site, get_site_context, add_constraint. */
 import { z } from 'zod';
-import { type Pt, ensureCCW, ringArea, ringCentroid } from '../geometry/basic';
+import { type Pt, bboxOf, ensureCCW, ringArea, ringCentroid } from '../geometry/basic';
 import { steepSlopeConstraints, terrainStats } from '../site/terrain';
 import { type Site } from '../site/model';
 import type { Project } from '../site/project';
@@ -40,6 +40,12 @@ export function siteContext(site: Site) {
       recordAreaAc: site.parcel.recordAreaAc ?? null,
       district: site.zoningDistrictCode,
       edges: site.edges.length,
+      /** Site CRS feet, for commands that take coordinates. */
+      bbox: (() => {
+        const b = bboxOf(site.parcel.ring);
+        return [Math.round(b.minX), Math.round(b.minY), Math.round(b.maxX), Math.round(b.maxY)];
+      })(),
+      centroid: ringCentroid(site.parcel.ring).map((v) => Math.round(v)),
     },
     frontages: fr.map((f) => {
       const e = site.edges[f.edgeIndexes[0]];
@@ -70,8 +76,10 @@ export function siteContext(site: Site) {
       preDevelopment: site.terrain.preDevelopment,
       lowElevFt: +stats.minElevFt.toFixed(1),
       lowPoint: relativePosition(site, stats.lowPoint),
+      lowPointXY: stats.lowPoint.map((v) => Math.round(v)),
       highElevFt: +stats.maxElevFt.toFixed(1),
       highPoint: relativePosition(site, stats.highPoint),
+      highPointXY: stats.highPoint.map((v) => Math.round(v)),
       reliefFt: +stats.reliefFt.toFixed(1),
       avgSlopePct: +stats.avgSlopePct.toFixed(1),
       maxSlopePct: +stats.maxSlopePct.toFixed(1),
@@ -155,7 +163,8 @@ defineCommand({
     'which side of the parcel, district across the street, whether that is residential); other edges with the adjacent ' +
     'district; constraints (wetlands, floodplain, steep slopes, manual) with area and location; existing terrain (high/low ' +
     'elevation ft and where, relief, average slope %, general fall direction); the as-built reference; and data-quality notes ' +
-    '(including a SYNTHETIC flag). Use it before choosing a building orientation and access points.',
+    '(including a SYNTHETIC flag). Also returns the parcel bbox and centroid in site CRS feet (x east, y north) for commands that ' +
+    'take coordinates. Use it before choosing a building orientation and access points.',
   input: z.object({}),
   mutates: false,
   handler: (p) => {

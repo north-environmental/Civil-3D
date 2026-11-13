@@ -21,10 +21,10 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "test": "vitest run --project unit",
-    "test:e2e": "vitest run --project e2e --no-file-parallelism",
-    "test:mcp": "vitest run --project mcp --no-file-parallelism",
+    "test:e2e": "npm run build:web && vitest run --project e2e --no-file-parallelism",
+    "test:mcp": "npm run build && vitest run --project mcp --no-file-parallelism",
     "screens": "tsx scripts/render-screens.ts",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run test:e2e && npm run test:mcp && npm run screens",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && vitest run --project e2e --no-file-parallelism && vitest run --project mcp --no-file-parallelism && npm run screens",
     "fetch-site-data": "tsx scripts/fetch-site-data.ts",
     "make-synthetic": "tsx scripts/make-synthetic-fixture.ts",
     "demo": "tsx scripts/demo-scenario.ts"

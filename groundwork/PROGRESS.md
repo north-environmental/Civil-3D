@@ -3,10 +3,10 @@
 _Update after every meaningful step. Newest status at the top._
 
 ## Current phase
-Phase 4: MCP server (in progress)
+Phase 5: Grading + earthwork (in progress)
 
 ## Last verify result
-2026-11-13 — `npm run verify` green (typecheck, lint, 37 unit tests, build, 8 e2e tests, 6 screenshots).
+2026-11-13 — `npm run verify` green (typecheck, lint, 37 unit tests, build, 8 e2e tests, 5 MCP tests, 6 screenshots).
 
 ## Done
 - [x] Phase 0: Foundations
@@ -26,15 +26,19 @@ Phase 4: MCP server (in progress)
   - [x] Solver < 10 s (0.35 s with a fixed orientation; 4.3 s for the full 0–175° search, 147k candidates)
   - [x] Screenshots of plan + yield (`03-layout-plan-checks.png`, `03-layout-yield.png`); `npm run demo` writes `docs/demo-summary.md` + `demo-headline-*.png`
   - [x] Direct manipulation: drag / rotate / resize the building, slide driveways; engine re-solves on release (e2e drag test)
-- [ ] Phase 4: MCP server
+- [x] Phase 4: MCP server
+  - [x] `npm run test:mcp` spawns the built MCP server with the official client SDK, lists tools, runs the headline scenario through MCP and gets a 1600 × 1000 PNG back from `render_view`
+  - [x] Tool descriptions reviewed as a context-free reader; added parcel bbox/centroid and object centers to context results so coordinate-taking tools are usable
+  - [x] Design log ("Activity" tab), `groundwork_designer` prompt, server instructions, `docs/MCP_SETUP.md`
+  - [ ] Grading tools (`set_grading_criteria`, `grade_site`, `optimize_ffe`, `get_earthwork_report`, `cut_section`) and `export` are wired as Phases 5–6 land
 - [ ] Phase 5: Grading + earthwork
 - [ ] Phase 6: Checks, exports, scenarios, polish
 - [ ] Phase 7: Docs and hardening
 
 ## Next 3 steps
-1. MCP server (stdio) forwarding every command; `groundwork_designer` prompt; image content for render_view
-2. `npm run test:mcp` with the official client SDK; docs/MCP_SETUP.md
-3. Phase 5: hand-calc tests T1–T6, then the grading engine
+1. Hand-calc tests T1–T6, T10, T13 written first (failing), then the grading engine
+2. Grading commands + FFE optimizer + earthwork panel
+3. Proposed contours, cut/fill map, section tool, 3D view
 
 ## Data source log
 Build environment: cloud sandbox with restricted egress. Every data host below was tried **once** on 2026-11-13 and

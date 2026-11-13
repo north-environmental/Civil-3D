@@ -1,6 +1,7 @@
 /** Context, scenario and log commands. */
 import { z } from 'zod';
 import { buildAssumptions } from '../checks/assumptions';
+import { ringCentroid } from '../geometry/basic';
 import { fmtAc, fmtCy, fmtInt } from '../site/units';
 import { activeScenario, type Project, type Scenario } from '../site/project';
 import { CommandError, defineCommand, newScenario } from './registry';
@@ -42,7 +43,8 @@ defineCommand({
   description:
     'Start here. Returns the current state in one compact object: loaded site, active scenario, program, yields ' +
     '(building SF, stalls, doors, coverage %), open check failures and warnings (with reasons), earthwork headline ' +
-    '(FFE ft, cut/fill/net CY) if graded, the list of scenarios, the assumptions in force and the state revision. ' +
+    '(FFE ft, cut/fill/net CY) if graded, the design objects (id, type, center in site CRS feet), the list of scenarios, ' +
+    'the assumptions that were changed from defaults and the state revision. ' +
     'Use it before and after a batch of changes to see what is still failing.',
   input: z.object({ includeAssumptions: z.boolean().default(false).describe('Include the full assumptions list (long).') }),
   mutates: false,
@@ -73,6 +75,13 @@ defineCommand({
         yield: s.results.yield.map((r) => ({ key: r.key, label: r.label, value: r.display, limit: r.limit, citation: r.citation })),
         failingChecks: fails.map((c) => ({ id: c.id, title: c.title, message: c.message, citation: c.citation, objectIds: c.objectIds })),
         warnings: warns.map((c) => ({ id: c.id, title: c.title, message: c.message })),
+        objects: s.objects
+          .filter((o) => o.type !== 'landscape')
+          .map((o) => {
+            const ring = o.type === 'drive' ? o.polygon[0] : o.polygon;
+            const c = ringCentroid(ring);
+            return { id: o.id, type: o.type, name: o.name, centerXY: [Math.round(c[0]), Math.round(c[1])] };
+          }),
         earthwork: scenarioHeadline(s).earthwork,
         layoutNotes: s.results.layoutNotes,
         assumptionsChanged: assumptions.filter((a) => a.changed).map((a) => `${a.label}: ${a.value}`),
