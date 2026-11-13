@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { app, runCommand, setTheme, toast, useApp } from '../lib/app';
-import { startDemo } from '../lib/demo';
+import { startDemo, stopDemo } from '../lib/demo';
 
 function Logo() {
   return (
@@ -59,6 +59,9 @@ export function TopBar() {
           +
         </button>
       </div>
+      <button className="btn" title="Compare scenarios side by side" disabled={(project?.scenarios.length ?? 0) < 2} onClick={() => app.set({ compareOpen: true })} data-testid="compare-btn">
+        Compare
+      </button>
       <button className="btn icon" title="Undo (Ctrl+Z)" disabled={!project?.history.undoDepth} onClick={() => runCommand('undo')}>
         ↶
       </button>
@@ -81,9 +84,15 @@ export function TopBar() {
       <button className={`btn ${tool === 'section' ? 'on' : ''}`} title="Draw a section line (S)" disabled={!site} onClick={() => app.set({ tool: tool === 'section' ? 'select' : 'section', view: '2d' })}>
         Section
       </button>
-      <button className="btn primary" disabled={!!demo?.running} title="Replay the headline scenario with the design log animating" onClick={() => void startDemo()} data-testid="demo-btn">
-        ▶ Demo
-      </button>
+      {demo?.running ? (
+        <button className="btn" title="Stop the demo after the current step" onClick={() => stopDemo()}>
+          ■ Stop
+        </button>
+      ) : (
+        <button className="btn primary" title="Replay the headline scenario with the design log animating (starts a new project)" onClick={() => void startDemo()} data-testid="demo-btn">
+          ▶ Demo
+        </button>
+      )}
       <div className="menu">
         <button className="btn" onClick={() => setMenu(!menu)} disabled={!site} data-testid="export-btn">
           Export ▾

@@ -10,6 +10,8 @@ import { derived } from '../plan/derived';
 import { ensureSurfaces, surfaces } from '../plan/surfaces';
 import { useStore } from '../lib/store';
 
+import { SheetRoot } from './SheetRoot';
+
 const View3D = lazy(() => import('../view3d/View3D'));
 
 export function RenderRoot({ view, params }: { view: string; params: URLSearchParams }) {
@@ -27,7 +29,11 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
       const want = params.get('scenario');
       const proj = app.get().project;
       if (want && proj && proj.scenarios.some((x) => x.id === want)) app.set({ project: { ...proj, activeScenarioId: want } });
-      app.set({ layers });
+      if (view === 'sheet') {
+        layers.existingContours = false;
+        layers.districts = false;
+      }
+      app.set({ layers, ...(params.get('theme') === 'light' ? { theme: 'light' as const } : {}) });
       setLoaded(true);
     });
   }, [view, params]);
@@ -61,6 +67,7 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
   const bbox = bboxParam ? (JSON.parse(bboxParam) as [number, number, number, number]) : undefined;
   const site = project?.site;
   const sc = project?.scenarios.find((x) => x.id === project.activeScenarioId);
+  if (view === 'sheet') return loaded ? <SheetRoot onDrawn={onDrawn} date={params.get('date') ?? new Date().toISOString().slice(0, 10)} /> : null;
   return (
     <div className="render-root">
       <div className="render-title">

@@ -58,6 +58,7 @@ export type AppState = {
   busy: string | null;
   toast: string | null;
   helpOpen: boolean;
+  compareOpen: boolean;
   zoomTo: { ids: string[]; nonce: number } | null;
   surface3d: 'existing' | 'proposed';
   drape3d: 'plain' | 'cutfill';
@@ -91,6 +92,7 @@ export const app = createStore<AppState>({
   busy: null,
   toast: null,
   helpOpen: false,
+  compareOpen: false,
   zoomTo: null,
   surface3d: 'proposed',
   drape3d: 'plain',

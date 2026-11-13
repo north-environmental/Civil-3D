@@ -1,8 +1,9 @@
 /** Output commands: render_view (PNG via the host), export, cut_section. */
 import { z } from 'zod';
+import { buildDxf, buildGeoJson, buildXlsxSheets } from '../export/build';
 import { activeScenario } from '../site/project';
 import { requireSite } from './base';
-import { CommandError, defineCommand } from './registry';
+import { CommandError, type Effect, defineCommand } from './registry';
 
 export const RENDER_VIEWS = ['plan', '3d', 'cutfill', 'section'] as const;
 
@@ -52,5 +53,49 @@ defineCommand({
         },
       ],
     };
+  },
+});
+
+defineCommand({
+  name: 'export',
+  group: 'Output',
+  title: 'Export',
+  description:
+    'Export the active scenario (or the given one) to files and return their paths and download URLs. formats: "dxf" (AutoCAD ' +
+    '2010 DXF in state plane feet with AIA-style layers: C-PROP, C-BLDG, C-PKNG-STRP, C-ROAD, C-TRCK, C-TOPO-EXST-MINR/MAJR, ' +
+    'C-TOPO-PROP-MINR/MAJR, C-STRM-BSIN, C-SETB, C-ANNO), "geojson" (WGS84, all design objects), "png" (24 × 36 plan sheet with ' +
+    'a title block and the yield, compliance and earthwork summary), "xlsx" (workbook: Yield, Compliance with citations, ' +
+    'Earthwork, Assumptions). Defaults to all four. Every export carries the "Concept-level, not for construction" note.',
+  input: z.object({ formats: z.array(z.enum(['dxf', 'geojson', 'png', 'xlsx'])).min(1).default(['dxf', 'geojson', 'png', 'xlsx']), scenario: z.string().optional() }),
+  mutates: false,
+  handler: (p, input, ctx) => {
+    const site = requireSite(p);
+    const sc = input.scenario ? p.scenarios.find((s) => s.id === input.scenario) : activeScenario(p);
+    if (!sc) throw new CommandError(`Scenario "${input.scenario}" not found. Existing: ${p.scenarios.map((s) => s.id).join(', ')}.`, 'not_found');
+    if (!sc.objects.length) throw new CommandError(`Scenario ${sc.id} has no layout to export. Run generate_layout first.`);
+    const base = `groundwork-${site.id}-${sc.id}-r${p.revision}`;
+    const effects: Effect[] = [];
+    const parts: string[] = [];
+    const formats = [...new Set(input.formats)];
+    if (formats.includes('dxf')) {
+      const dxf = buildDxf(p, sc, ctx.now);
+      effects.push({ type: 'writeText', fileName: `${base}.dxf`, content: dxf.content, as: 'dxf' });
+      parts.push(`DXF (${Object.keys(dxf.counts).length} layers, ${Object.values(dxf.counts).reduce((a, b) => a + b, 0)} entities)`);
+    }
+    if (formats.includes('geojson')) {
+      const gj = buildGeoJson(p, sc, ctx.now);
+      effects.push({ type: 'writeText', fileName: `${base}.geojson`, content: JSON.stringify(gj), as: 'geojson' });
+      parts.push(`GeoJSON (${(gj.features as unknown[]).length} features, WGS84)`);
+    }
+    if (formats.includes('xlsx')) {
+      effects.push({ type: 'writeXlsx', fileName: `${base}.xlsx`, sheets: buildXlsxSheets(p, sc, ctx.now), as: 'xlsx' });
+      parts.push('XLSX (Yield, Compliance, Earthwork, Assumptions)');
+    }
+    if (formats.includes('png')) {
+      effects.push({ type: 'render', view: 'sheet', params: { scenario: sc.id, theme: 'light', date: ctx.now.slice(0, 10) }, width: 2700, height: 1800, as: `file:${base}-sheet.png` });
+      parts.push('PNG plan sheet (24 × 36, 2700 × 1800 px)');
+    }
+    const msg = `Exported scenario ${sc.id}: ${parts.join('; ')}. Concept-level, not for construction.`;
+    return { result: { summary: msg, scenario: sc.id, formats }, log: msg, effects };
   },
 });

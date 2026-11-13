@@ -5,7 +5,7 @@ import { LeftPanel } from './panels/LeftPanel';
 import { RightPanel } from './panels/RightPanel';
 import { TopBar } from './panels/TopBar';
 import { CenterView } from './panels/CenterView';
-import { HelpDialog } from './panels/HelpDialog';
+import { CompareDialog, HelpDialog } from './panels/HelpDialog';
 import { RenderRoot } from './render/RenderRoot';
 
 const params = new URLSearchParams(location.search);
@@ -42,7 +42,7 @@ export function App() {
           app.set({ helpOpen: !s.helpOpen });
           break;
         case 'Escape':
-          app.set({ helpOpen: false, selection: null, tool: 'select' });
+          app.set({ helpOpen: false, compareOpen: false, selection: null, tool: 'select', sectionLine: s.tool === 'section' ? null : s.sectionLine });
           break;
         case '2':
           app.set({ view: '2d' });
@@ -89,6 +89,7 @@ export function App() {
       <RightPanel />
       <BottomBar />
       <HelpDialog />
+      <CompareDialog />
     </div>
   );
 }

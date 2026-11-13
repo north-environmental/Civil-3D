@@ -108,6 +108,33 @@ async function main() {
     await page.waitForTimeout(600);
     await shot('05-grading-3d.png');
     await page.keyboard.press('2');
+
+    // Phase 6: scenario B + compare, light theme, exported plan sheet
+    await app.cmd('create_scenario', { name: 'B: long axis parallel to Route 72' }, 'mcp');
+    await app.cmd('generate_layout', { alignToRoad: 'Route 72' }, 'mcp');
+    await app.cmd('optimize_ffe', {}, 'mcp');
+    await graded();
+    await page.keyboard.press('Escape');
+    await page.click('[data-testid="tab-checks"]');
+    await shot('06-scenario-b-checks.png');
+    await page.click('[data-testid="compare-btn"]');
+    await page.waitForSelector('[data-testid="compare-dialog"]');
+    await shot('06-compare.png');
+    await page.keyboard.press('Escape');
+    await app.cmd('switch_scenario', { scenarioId: 'A' }, 'mcp');
+    await graded();
+    await page.keyboard.press('t');
+    await page.keyboard.press('b');
+    await page.click('[data-testid="tab-activity"]');
+    await shot('06-light-theme-asbuilt-activity.png');
+    await page.keyboard.press('t');
+    await page.keyboard.press('b');
+    const exp = await app.cmd('export', { formats: ['png'] }, 'script');
+    const sheet = (exp.files as { kind: string; path: string }[]).find((f) => f.kind === 'png');
+    if (sheet) {
+      fs.copyFileSync(sheet.path, path.join(outDir, '06-export-plan-sheet.png'));
+      shots.push('06-export-plan-sheet.png');
+    }
     await page.close();
   } finally {
     await browser.close();

@@ -1004,3 +1004,118 @@ kbd {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Plan sheet export (24 × 36) */
+.sheet {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 700px;
+  background: #ffffff;
+  color: #14181d;
+  padding: 26px;
+  gap: 22px;
+  font-size: 15px;
+}
+.sheet-plan {
+  position: relative;
+  border: 2px solid #14181d;
+  display: flex;
+  min-height: 0;
+}
+.sheet-block {
+  border: 2px solid #14181d;
+  padding: 20px 22px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sheet-brand {
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  font-size: 20px;
+}
+.sheet-sub {
+  color: #5d6875;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.sheet h1 {
+  font-size: 25px;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.sheet h2 {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 20px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid #14181d;
+}
+.sheet-meta {
+  color: #3c4652;
+  font-size: 14px;
+}
+.sheet-warn {
+  margin-top: 12px;
+  border: 2px solid #b3261e;
+  color: #b3261e;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  text-align: center;
+}
+.sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.sheet td {
+  padding: 3.5px 4px;
+  border-bottom: 1px solid #d5d9e0;
+  vertical-align: top;
+}
+.sheet td.num {
+  font-family: var(--mono);
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.sheet td.lim {
+  color: #5d6875;
+  font-size: 11.5px;
+  width: 42%;
+}
+.sheet-issue {
+  font-size: 12.5px;
+  margin: 4px 0;
+  color: #2a323c;
+}
+.sheet-issue b.fail {
+  color: #b3261e;
+}
+.sheet-issue b.warn {
+  color: #a8650a;
+}
+.sheet-note {
+  font-size: 13px;
+  color: #3c4652;
+}
+.sheet-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 11.5px;
+  color: #5d6875;
+  line-height: 1.45;
+}
+
+:root[data-theme='light'] .tag.synthetic {
+  color: #a3214f;
+  border-color: #c4527a;
+  background: rgba(214, 90, 140, 0.14);
+}
+:root[data-theme='light'] .swatch {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}

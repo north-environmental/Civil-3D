@@ -145,7 +145,7 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
       ctx.setLineDash([4, 4]);
       fillRegion(ctx, v, [inner], null, pal.basinStroke, 0.8);
       ctx.setLineDash([]);
-      label(`${o.name.toUpperCase()}\n${(o.areaSf / 43560).toFixed(1)} ac · planning reservation`, cx, 6, { color: '#a9d0f5', size: 10.5 });
+      label(`${o.name.toUpperCase()}\n${(o.areaSf / 43560).toFixed(1)} ac · planning reservation`, cx, 6, { color: s.theme === 'light' ? '#0b3d73' : '#a9d0f5', size: 10.5 });
     }
     // Truck pavement ---------------------------------------------------------------------------
     for (const o of objs) {

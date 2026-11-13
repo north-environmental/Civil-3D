@@ -50,7 +50,17 @@ export const HEADLINE_STEPS_COMPARE: DemoStep[] = [
   { step: 8, label: 'Compare A vs B', command: 'compare_scenarios', input: {} },
   { step: 9, label: 'Back to scenario A', command: 'switch_scenario', input: { scenarioId: 'A' } },
 ];
-export const HEADLINE_STEPS_EXPORT: DemoStep[] = [];
+export const HEADLINE_STEPS_EXPORT: DemoStep[] = [
+  {
+    step: 9,
+    label: 'Compare the test fit with the as-built reference',
+    command: 'log_note',
+    input: {
+      note: 'As-built comparison (reference layer on): the built facility is a 411,840 SF building with about 10 ac of basins on the west, south and east sides, trucks from Route 72 and Heilmandale Rd and an employee drive off Orange Ln. The test fit matches that program within 0.4% of building area, uses the same three access points and reserves a similar stormwater area; footprint proportions and basin locations differ. (The as-built outline in this fixture is illustrative.)',
+    },
+  },
+  { step: 10, label: 'Export DXF + XLSX', command: 'export', input: { formats: ['dxf', 'xlsx'] } },
+];
 
 /** Grading of scenario B (same commands as A, run while B is active). */
 export const HEADLINE_STEPS_GRADING_B: DemoStep[] = [{ step: 8, label: 'Scenario B: balance the earthwork', command: 'optimize_ffe', input: { targetNetCy: 0 } }];
