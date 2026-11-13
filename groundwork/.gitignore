@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tsbuildinfo
+projects/*
+!projects/.gitkeep
+exports/
+.DS_Store
+*.log
+.vite/

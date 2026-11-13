@@ -1,0 +1,67 @@
+{
+  "name": "groundwork",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-driven industrial site test fit + grading (concept-level demo)",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx packages/server/src/main.ts --dev",
+    "start": "node packages/server/dist/main.js",
+    "build": "npm run build:web && npm run build:server && npm run build:mcp",
+    "build:web": "vite build packages/web",
+    "build:server": "node scripts/bundle.mjs server",
+    "build:mcp": "node scripts/bundle.mjs mcp",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "test": "vitest run --project unit",
+    "test:e2e": "vitest run --project e2e --no-file-parallelism",
+    "test:mcp": "vitest run --project mcp --no-file-parallelism",
+    "screens": "tsx scripts/render-screens.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run test:e2e && npm run test:mcp && npm run screens",
+    "fetch-site-data": "tsx scripts/fetch-site-data.ts",
+    "make-synthetic": "tsx scripts/make-synthetic-fixture.ts",
+    "demo": "tsx scripts/demo-scenario.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "clipper-lib": "^6.4.2",
+    "dxf-parser": "^1.1.2",
+    "exceljs": "^4.4.0",
+    "express": "^4.22.3",
+    "geotiff": "^3.0.5",
+    "proj4": "^2.23.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.187.0",
+    "ws": "^8.23.0",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/express": "^4.17.25",
+    "@types/node": "^22.20.5",
+    "@types/proj4": "^2.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^5.2.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "playwright": "1.63.0",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^7.3.8",
+    "vitest": "^3.2.7"
+  }
+}

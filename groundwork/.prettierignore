@@ -1,0 +1,7 @@
+node_modules
+dist
+data
+docs/screens
+projects
+exports
+package-lock.json
