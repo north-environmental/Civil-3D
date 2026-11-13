@@ -169,6 +169,22 @@ switch_scenario {"scenarioId":"A"}
 
 Switched to scenario A (Scenario A).
 
+### Step 9: Compare the test fit with the as-built reference
+
+```
+log_note {"note":"As-built comparison (reference layer on): the built facility is a 411,840 SF building with about 10 ac of basins on the west, south and east sides, trucks from Route 72 and Heilmandale Rd and an employee drive off Orange Ln. The test fit matches that program within 0.4% of building area, uses the same three access points and reserves a similar stormwater area; footprint proportions and basin locations differ. (The as-built outline in this fixture is illustrative.)"}
+```
+
+Note added to the design log.
+
+### Step 10: Export DXF + XLSX
+
+```
+export {"formats":["dxf","xlsx"]}
+```
+
+Exported scenario A: DXF (16 layers, 973 entities); XLSX (Yield, Compliance, Earthwork, Assumptions). Concept-level, not for construction.
+
 ## Final state
 
 1625 Heilmandale Rd (synthetic fixture) (SYNTHETIC fixture), 109.6 ac; scenario A; 15 objects; 0 failing / 2 warning checks; FFE 497.4 ft, net 802 CY.
@@ -191,4 +207,4 @@ Switched to scenario A (Scenario A).
 | Loading berths | 110 provided | ≥ 13 (12 if rounded down) · § 27-1408 |
 | Stormwater reservation (1 basin) | 10.00 ac | 9.87 ac planning reservation: 9% of the 109.6 ac parcel (pctOfSite method) · EFCG default; not a hydrologic design |
 
-_Total: 5.2 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._
+_Total: 7.5 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._
