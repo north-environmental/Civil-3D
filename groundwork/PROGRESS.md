@@ -3,10 +3,10 @@
 _Update after every meaningful step. Newest status at the top._
 
 ## Current phase
-Phase 5: Grading + earthwork (in progress)
+Phase 6: Checks, exports, scenarios, polish (in progress)
 
 ## Last verify result
-2026-11-13 — `npm run verify` green (typecheck, lint, 37 unit tests, build, 8 e2e tests, 5 MCP tests, 6 screenshots).
+2026-11-13 — `npm run verify` green (typecheck, lint, 53 unit tests, build, 11 e2e tests, 5 MCP tests, 10 screenshots).
 
 ## Done
 - [x] Phase 0: Foundations
@@ -30,15 +30,19 @@ Phase 5: Grading + earthwork (in progress)
   - [x] `npm run test:mcp` spawns the built MCP server with the official client SDK, lists tools, runs the headline scenario through MCP and gets a 1600 × 1000 PNG back from `render_view`
   - [x] Tool descriptions reviewed as a context-free reader; added parcel bbox/centroid and object centers to context results so coordinate-taking tools are usable
   - [x] Design log ("Activity" tab), `groundwork_designer` prompt, server instructions, `docs/MCP_SETUP.md`
-  - [ ] Grading tools (`set_grading_criteria`, `grade_site`, `optimize_ffe`, `get_earthwork_report`, `cut_section`) and `export` are wired as Phases 5–6 land
-- [ ] Phase 5: Grading + earthwork
+  - [x] Grading tools (`set_grading_criteria`, `grade_site`, `optimize_ffe`, `get_earthwork_report`, `cut_section`) wired in Phase 5; `export` lands in Phase 6
+- [x] Phase 5: Grading + earthwork
+  - [x] Hand-calc tests written FIRST (`grading/handcalc.test.ts` failed with "Cannot find module ./engine"), then the engine. All pass within the stated tolerances: T1, T2 (±0.5% at 1/2/5 ft), T3 (±0.5% at 1 ft, ±1% at 5 ft), T4 (3.33 ft ±0.3), T5 (FFE 109.89 ±0.02), T6 (110.00 ±0.02), T10, T13; T7/T9/T11 in `layout.test.ts`, T8 in `zoning.test.ts`, T12 in `envelopes.test.ts`
+  - [x] Optimizer balances the demo site: scenario A FFE 497.4 ft, cut 148,155 CY, fill 132,537 CY, net +802 CY = 0.3% of movement (≤ 2%); feasible range 488.5–514.1 ft from the Route 72 truck drive
+  - [x] Interactive regrade after a building move: ~0.4 s server-side (layout + grading), worker regrade < 1.5 s (e2e asserted) at the 5 ft grid
+  - [x] Screenshots: `05-grading-contours-earthwork.png`, `05-grading-cutfill.png`, `05-grading-section.png`, `05-grading-3d.png`
 - [ ] Phase 6: Checks, exports, scenarios, polish
 - [ ] Phase 7: Docs and hardening
 
 ## Next 3 steps
-1. Hand-calc tests T1–T6, T10, T13 written first (failing), then the grading engine
-2. Grading commands + FFE optimizer + earthwork panel
-3. Proposed contours, cut/fill map, section tool, 3D view
+1. Exports: DXF (parsed back in tests), GeoJSON, XLSX (4 sheets), PNG plan sheet
+2. Demo mode button (replays the headline scenario), empty/error states, full e2e demo run
+3. Phase 7 docs: README, DEMO.md, ARCHITECTURE.md, LIMITATIONS.md, fresh-clone test
 
 ## Data source log
 Build environment: cloud sandbox with restricted egress. Every data host below was tried **once** on 2026-11-13 and
@@ -63,6 +67,7 @@ Run `npm run fetch-site-data` on a machine with internet access to replace it wi
 |---|---|---|---|
 | 00-shell-empty.png | 2026-11-13 | None blocking. Shell reads as a product: top bar, layers, tabs, status bar, command line, empty state. | n/a |
 | 01-site-plan-asbuilt.png | 2026-11-13 | Minor (1 ft) contours too faint to read at site zoom. Labels do not overlap; roads, districts, wetland, as-built reference, scale bar, north arrow, coordinates and elevation all read correctly. | Yes: raised minor-contour contrast |
+| 05-grading-cutfill.png, 05-grading-section.png, 05-grading-3d.png, 05-grading-contours-earthwork.png | 2026-11-13 | 3D camera cropped the site and the wetland was missing in 3D; section caption clipped at the panel bottom; tab focus ring looked like a selection. Cut/fill legend, proposed contours, FFE label, section profile (pad at FFE, courts 4 ft below, 3:1 tie-ins) all read correctly. Earthwork sanity: first pass had the 10 ac basin 7 ft deep = 195k CY of cut dominating everything (not credible) and the solver parked the building where a 145 ft truck drive forced the floor 7 ft above grade (76k CY import). | Yes: wider 3D framing + wetland color; chart height; focus style; basin depth 3 ft for the area-based method with berm at median ground; solver now scores drive-profile feasibility |
 | 03-layout-plan-checks.png, 03-layout-yield.png, demo-headline-asbuilt.png | 2026-11-13 | Building label was unreadable (dark halo on a light fill); a basin corner crossed the lot line (raster cell overhang); solver pinned the building against the Route 72 setback leaving a 60 ft truck throat; yield label column wrapped. | Yes: light halo on the building label; basin free area eroded 15 ft; 300 ft preferred truck approach in the solver score; wider label column |
 | 02-zoning-envelopes.png | 2026-11-13 | Envelope label landed on the wetland hole instead of the envelope body. Tooltip shows rule + § 27-1003; Zoning tab lists rules, citations and flags. | Yes: label now uses the largest ring by area |
 

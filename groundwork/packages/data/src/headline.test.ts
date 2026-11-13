@@ -94,3 +94,91 @@ describe('headline scenario on the Heilmandale fixture (SPEC §10, steps 1–6)'
     for (const [name, r] of Object.entries(results)) expect(JSON.stringify(r).length, name).toBeLessThan(16_000);
   });
 });
+
+describe('headline scenario: grading (SPEC §10 step 7, Phase 5 acceptance)', () => {
+  const services = createHostServices(dataDir);
+  let p: Project = newProject();
+  for (const st of HEADLINE_STEPS) p = executeCommand(p, st.command, st.input, { services, source: 'mcp' }).project;
+  const run = (name: string, input: unknown = {}) => {
+    const r = executeCommand(p, name, input, { services, source: 'mcp' });
+    p = r.project;
+    return r.result as any;
+  };
+
+  it('grades at the default FFE, then balances within ±2% of total movement', () => {
+    const g = run('grade_site');
+    expect(g.ffeFt).toBeGreaterThan(470);
+    expect(g.ffeFt).toBeLessThan(515);
+    const o = run('optimize_ffe', { targetNetCy: 0 });
+    expect(o.achieved).toBe(true);
+    const ew = activeScenario(p).results.earthwork!;
+    const movement = ew.cutCy + ew.fillCy;
+    expect(Math.abs(ew.netCy)).toBeLessThanOrEqual(0.02 * movement);
+    expect(Math.round(ew.ffeFt * 10) / 10).toBe(ew.ffeFt); // reported to 0.1 ft
+    // Inside the feasible range from drive grades.
+    expect(ew.ffeFt).toBeGreaterThanOrEqual(ew.feasibleFfe!.minFt - 1e-6);
+    expect(ew.ffeFt).toBeLessThanOrEqual(ew.feasibleFfe!.maxFt + 1e-6);
+    // Sanity: a 110 ac site is tens to a few hundred thousand CY, not millions or single digits.
+    expect(movement).toBeGreaterThan(50_000);
+    expect(movement).toBeLessThan(900_000);
+    expect(ew.maxCutFt).toBeLessThan(30);
+    expect(ew.maxFillFt).toBeLessThan(30);
+  });
+
+  it('drive grades, walls and offsite grading are checked and nothing fails', () => {
+    const s = activeScenario(p);
+    const ew = s.results.earthwork!;
+    for (const d of ew.drives) expect(Math.abs(d.gradePct), d.name).toBeLessThanOrEqual(d.maxGradePct + 1e-6);
+    expect(s.checks.filter((c) => c.status === 'fail').map((c) => `${c.title}: ${c.message}`)).toEqual([]);
+    const ids = s.checks.filter((c) => c.group === 'grading').map((c) => c.id);
+    for (const id of ['g.walls', 'g.offsite', 'g.tieIn.slope', 'g.balance', 'g.truckCourt.slope']) expect(ids).toContain(id);
+    expect(ids.some((i) => i.startsWith('g.drive.grade.'))).toBe(true);
+    expect(ids.some((i) => i.startsWith('g.ada.slope.'))).toBe(true);
+    expect(ew.offsiteAreaSf).toBe(0);
+    // Dock faces sit one dock height below FFE; building corners at FFE.
+    const dock = ew.spots.find((x) => x.label.startsWith('Dock face'))!;
+    expect(dock.elevFt).toBeCloseTo(ew.ffeFt - 4.0, 5);
+    expect(ew.spots.find((x) => x.label.startsWith('Building corner'))!.elevFt).toBe(ew.ffeFt);
+  });
+
+  it('interactive regrade (5 ft grid) takes well under 1.5 s', () => {
+    const s = activeScenario(p);
+    const b = s.objects.find((o) => o.type === 'building') as Building;
+    const t0 = Date.now();
+    run('edit_object', { id: 'bldg-1', moveBy: [-40, 20] }); // regenerates the layout AND regrades
+    const ms = Date.now() - t0;
+    expect(ms).toBeLessThan(1500);
+    const moved = activeScenario(p).objects.find((o) => o.type === 'building') as Building;
+    expect(moved.center[0]).toBeCloseTo(b.center[0] - 40, 6);
+    expect(activeScenario(p).results.earthwork).not.toBeNull();
+    run('undo');
+  });
+
+  it('the 2 ft report grid agrees with the interactive 5 ft grid within 3%', () => {
+    const a = run('get_earthwork_report');
+    const b = run('get_earthwork_report', { grid: 'report' });
+    expect(Math.abs(b.cutCy - a.cutCy) / a.cutCy).toBeLessThan(0.03);
+    expect(Math.abs(b.fillCy - a.fillCy) / a.fillCy).toBeLessThan(0.03);
+    expect(b.byArea.map((x: any) => x.area)).toEqual(expect.arrayContaining(['building pad', 'truck courts', 'car parking', 'drives', 'basins', 'tie-in slopes']));
+    expect(JSON.stringify(b).length).toBeLessThan(8000);
+  });
+
+  it('import target, criteria changes and sections', () => {
+    const o = run('optimize_ffe', { targetNetCy: -20000 });
+    expect(o.achieved).toBe(true);
+    expect(activeScenario(p).results.earthwork!.netCy).toBeLessThan(-12000);
+    const before = activeScenario(p).results.earthwork!.cutCy;
+    run('set_grading_criteria', { criteria: { shrinkPct: 15, tieInSlopeHtoV: 4 } });
+    const ew = activeScenario(p).results.earthwork!;
+    expect(ew.shrinkPct).toBe(15);
+    expect(ew.cutCy).not.toBe(before);
+    // The earlier target no longer holds after the criteria change, and the report says so.
+    expect(ew.balance!.targetNetCy).toBe(-20000);
+    expect(() => run('set_grading_criteria', { criteria: { nope: 1 } })).toThrow(/Unknown grading criteria/);
+    const sec = run('cut_section', {});
+    expect(sec.profile.length).toBe(60);
+    expect(sec.maxFillFt + sec.maxCutFt).toBeGreaterThan(1);
+    const ffe = activeScenario(p).results.earthwork!.ffeFt;
+    expect(sec.profile.some((row: number[]) => Math.abs(row[2] - ffe) < 0.05)).toBe(true); // crosses the pad
+  });
+});

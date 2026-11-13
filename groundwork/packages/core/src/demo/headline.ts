@@ -37,7 +37,11 @@ export const HEADLINE_STEPS: DemoStep[] = [
 ];
 
 /** Steps 7–10: grading, scenario B, comparison, exports. */
-export const HEADLINE_STEPS_GRADING: DemoStep[] = [];
+export const HEADLINE_STEPS_GRADING: DemoStep[] = [
+  { step: 7, label: 'Grade the site at the default finished floor elevation', command: 'grade_site', input: {} },
+  { step: 7, label: 'Optimize the FFE to balance cut and fill', command: 'optimize_ffe', input: { targetNetCy: 0 } },
+  { step: 7, label: 'Report cut / fill / net, walls and offsite grading', command: 'get_earthwork_report', input: {} },
+];
 export const HEADLINE_STEPS_SCENARIO_B: DemoStep[] = [
   { step: 8, label: 'Scenario B: branch the design', command: 'create_scenario', input: { name: 'B: long axis parallel to Route 72' } },
   { step: 8, label: 'Scenario B: rotate the building 90° (parallel to Route 72)', command: 'generate_layout', input: { alignToRoad: 'Route 72' } },
@@ -49,7 +53,7 @@ export const HEADLINE_STEPS_COMPARE: DemoStep[] = [
 export const HEADLINE_STEPS_EXPORT: DemoStep[] = [];
 
 /** Grading of scenario B (same commands as A, run while B is active). */
-export const HEADLINE_STEPS_GRADING_B: DemoStep[] = [];
+export const HEADLINE_STEPS_GRADING_B: DemoStep[] = [{ step: 8, label: 'Scenario B: balance the earthwork', command: 'optimize_ffe', input: { targetNetCy: 0 } }];
 
 export function headlineSteps(): DemoStep[] {
   return [...HEADLINE_STEPS, ...HEADLINE_STEPS_GRADING, ...HEADLINE_STEPS_SCENARIO_B, ...HEADLINE_STEPS_GRADING_B, ...HEADLINE_STEPS_COMPARE, ...HEADLINE_STEPS_EXPORT];

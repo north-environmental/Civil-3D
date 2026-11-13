@@ -69,6 +69,45 @@ async function main() {
     await page.click('[data-testid="tab-yield"]');
     await shot('03-layout-yield.png');
     await page.click('[data-testid="tab-checks"]');
+
+    // Phase 5: grading + earthwork
+    await app.cmd('optimize_ffe', { targetNetCy: 0 }, 'mcp');
+    const graded = () => page.waitForFunction(() => {
+      const st = (window as any).__gwState();
+      const p = st.project;
+      return (window as any).__gw?.gradedKey === `${p.site.id}:${p.activeScenarioId}:${p.revision}`;
+    }, undefined, { timeout: 30_000 });
+    await graded();
+    await page.click('[data-testid="tab-earthwork"]');
+    await shot('05-grading-contours-earthwork.png');
+    await page.keyboard.press('c');
+    await shot('05-grading-cutfill.png');
+    // Section through the building, across its depth.
+    const sec = await page.evaluate(() => {
+      const st = (window as any).__gwState();
+      const b = st.project.scenarios[0].objects.find((o: any) => o.type === 'building');
+      const v = (window as any).__plan.view;
+      const ang = (b.rotationDeg * Math.PI) / 180;
+      const half = b.depthFt / 2 + 330;
+      // (No nested named functions here: tsx's keepNames helper does not exist inside the page.)
+      const ends = [
+        [b.center[0] + Math.sin(ang) * half, b.center[1] - Math.cos(ang) * half],
+        [b.center[0] - Math.sin(ang) * half, b.center[1] + Math.cos(ang) * half],
+      ];
+      return ends.map((w) => [(w[0] - v.cx) * v.scale + v.w / 2, v.h / 2 - (w[1] - v.cy) * v.scale]);
+    });
+    await page.keyboard.press('s');
+    await page.mouse.click(box.x + sec[0][0], box.y + sec[0][1]);
+    await page.mouse.click(box.x + sec[1][0], box.y + sec[1][1]);
+    await page.waitForSelector('[data-testid="section-chart"]');
+    await page.mouse.move(box.x + 30, box.y + 300);
+    await shot('05-grading-section.png');
+    await page.keyboard.press('c');
+    await page.click('[data-testid="view-3d"]');
+    await page.waitForFunction(() => (window as any).__gw?.view3dReady === true, undefined, { timeout: 30_000 });
+    await page.waitForTimeout(600);
+    await shot('05-grading-3d.png');
+    await page.keyboard.press('2');
     await page.close();
   } finally {
     await browser.close();

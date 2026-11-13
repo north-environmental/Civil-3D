@@ -6,7 +6,7 @@
  * (docks not facing residential, short truck/car routes) and an earthwork proxy (std-dev of existing
  * elevation under the pad and truck courts).
  */
-import { type Pt, type Ring, bboxOfRegion, distToPolyline, dot, norm360, outwardNormalOf, radToDeg, ringInsideRegion, ringToSegmentDist, toWorld } from '../geometry/basic';
+import { type Pt, type Ring, bboxOfRegion, closestOnPolyline, distToPolyline, dot, norm360, outwardNormalOf, radToDeg, ringInsideRegion, ringToSegmentDist, toWorld } from '../geometry/basic';
 import { sampleGrid } from '../geometry/grid';
 import type { Site } from '../site/model';
 import type { Placement, Program, Scenario, Side } from '../site/project';
@@ -14,6 +14,7 @@ import type { Envelopes } from '../zoning/envelopes';
 import { type Frontage, findRoad, frontages } from '../zoning/edges';
 import { type ZoningRuleSet, ruleTable } from '../zoning/rules';
 import { attachedFieldFrame, buildingDims, courtDepth, fieldDepthFt, makeAprons, makeBuilding, makeCourts, rowCapacity, truckEnd } from './building';
+import { buildGradingObjects, feasibleFfeRange } from '../grading/objects';
 import { type LayoutResult, buildLayout, carStallTarget } from './generate';
 
 /** Preferred minimum distance from the truck apron to its street frontage (throat + queuing), ft. EFCG default. */
@@ -162,6 +163,21 @@ export function solveLayout(site: Site, rules: ZoningRuleSet, env: Envelopes, s:
           const truckFt = distTo(truckPt, truckFronts);
           const carFt = distTo(carPt, carFronts);
 
+          // Drive-profile feasibility (SPEC §5.2.5): the pad sits near mean existing ground, so a driveway whose
+          // road is much higher or lower than that needs length to make up the difference at the max grade.
+          let profilePenalty = 0;
+          const gc = s.grading.criteria;
+          const profile = (pt: Pt, list: Frontage[], below: number, maxPct: number) => {
+            for (const fx of list) {
+              const cp = closestOnPolyline(pt, fx.line);
+              const zRoad = sampleGrid(site.dem, cp.pt[0], cp.pt[1]);
+              const need = Math.abs(zRoad - (mean - below));
+              profilePenalty += Math.max(0, need - (maxPct / 100) * Math.max(60, cp.d - 40));
+            }
+          };
+          profile(truckPt, truckFronts, gc.dockHeightFt, gc.truckDriveMaxGradePct);
+          profile(carPt, carFronts, gc.parkingAnchorBelowFfeFt, gc.carDriveMaxGradePct);
+
           // Docks facing residential: penalty fades with distance.
           let residentialPenalty = 0;
           if (s.prefs.docksAwayFromResidential) {
@@ -193,7 +209,7 @@ export function solveLayout(site: Site, rules: ZoningRuleSet, env: Envelopes, s:
 
           // Weights: truck pavement is the costliest to build, so its route length counts more than the car
           // drive; but a truck entrance needs queuing length, so nothing is gained below MIN_TRUCK_APPROACH_FT.
-          const score = 400 * stallShortfall + 6 * stdElevFt + 0.016 * Math.max(truckFt, MIN_TRUCK_APPROACH_FT) + 0.007 * carFt + 14 * residentialPenalty + (truckFt < MIN_TRUCK_APPROACH_FT ? 0.05 * (MIN_TRUCK_APPROACH_FT - truckFt) : 0) + 150 * westWallPenalty;
+          const score = 400 * stallShortfall + 6 * stdElevFt + 0.016 * Math.max(truckFt, MIN_TRUCK_APPROACH_FT) + 0.007 * carFt + 14 * residentialPenalty + (truckFt < MIN_TRUCK_APPROACH_FT ? 0.05 * (MIN_TRUCK_APPROACH_FT - truckFt) : 0) + 150 * westWallPenalty + 5 * profilePenalty;
           candidates.push({ placement, score, parts: { stallShortfall, rows, stdElevFt, truckFt, carFt, residentialPenalty } });
         }
       }
@@ -223,8 +239,12 @@ export function solveLayout(site: Site, rules: ZoningRuleSet, env: Envelopes, s:
     const layout = buildLayout(site, rules, env, s, cnd.placement);
     const basinShort = layout.stats.basinRequiredSf > 0 ? Math.max(0, 1 - layout.stats.basinPlacedSf / layout.stats.basinRequiredSf) : 0;
     const carShort = layout.stats.carStallsTarget > 0 ? Math.max(0, layout.stats.carStallsTarget - layout.stats.carStallsProvided) / layout.stats.carStallsTarget : 0;
-    const total = cnd.score - 400 * cnd.parts.stallShortfall + 400 * carShort + 250 * layout.stats.routesMissing + 120 * basinShort + 1000 * layout.stats.hardFailures.length;
-    return { cnd, layout, total, basinShort };
+    // Exact drive-grade feasibility on the routed drives: how far mean ground under the pad lies outside the FFE range.
+    const setup = buildGradingObjects(site, { ...s, objects: layout.objects });
+    const range = feasibleFfeRange(setup.drives);
+    const ffeGapFt = range ? Math.max(0, range.minFt - setup.padMeanExistingFt, setup.padMeanExistingFt - range.maxFt) : 0;
+    const total = cnd.score - 400 * cnd.parts.stallShortfall + 400 * carShort + 250 * layout.stats.routesMissing + 120 * basinShort + 1000 * layout.stats.hardFailures.length + 10 * ffeGapFt;
+    return { cnd, layout, total, basinShort, ffeGapFt };
   });
   full.sort((a, b) => a.total - b.total);
   const best = full[0];
@@ -237,6 +257,7 @@ export function solveLayout(site: Site, rules: ZoningRuleSet, env: Envelopes, s:
     `truck apron about ${Math.round(bp.truckFt)} ft and parking about ${Math.round(bp.carFt)} ft from their assigned frontages` +
     (bp.residentialPenalty > 0.05 ? '; a dock court faces a residential district (mitigated by distance and the buffer planting)' : '; no dock court faces a residential district at close range') +
     (best.basinShort > 0.03 ? `; stormwater reservation is ${(best.basinShort * 100).toFixed(0)}% short` : '') +
+    (best.ffeGapFt > 0.5 ? `; drive grades force the floor about ${best.ffeGapFt.toFixed(1)} ft away from mean existing ground (expect import or export)` : '; drive grades allow the floor to sit at mean existing ground') +
     '.';
   const alternatives = full.slice(1, 4).map((x) => ({
     rotationDeg: x.cnd.placement.rotationDeg,

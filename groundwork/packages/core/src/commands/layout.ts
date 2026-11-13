@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { type Pt, type Ring, distToPolyline, norm360, orientedRect, ringArea, ringCentroid, ringInsideRegion } from '../geometry/basic';
 import { LAYOUT_DEFAULTS, type LayoutCriteria } from '../criteria/layout';
 import { deriveProject as deriveNow } from '../derive';
-import { basinStorageCf } from '../layout/basin';
+import { basinDepthFor, basinStorageCf } from '../layout/basin';
 import { fieldDepthFt, makeParkingField } from '../layout/building';
 import { type LayoutResult, buildLayout } from '../layout/generate';
 import { frontageAngleDeg, solveLayout } from '../layout/solver';
@@ -120,7 +120,7 @@ defineCommand({
     trailerRowInCourts: z.boolean().optional(),
     layoutCriteria: z.record(z.number()).optional().describe('Override layout design defaults by key (see assumptions), e.g. {"dockDoorSpacingFt": 13}.'),
     stormwater: z
-      .object({ method: z.enum(['pctOfSite', 'runoffDepth']).optional(), pctOfSite: z.number().min(0).max(40).optional(), runoffDepthIn: z.number().min(0).max(12).optional(), basinDepthFt: z.number().min(1).max(20).optional(), maxBasins: z.number().int().min(1).max(6).optional() })
+      .object({ method: z.enum(['pctOfSite', 'runoffDepth']).optional(), pctOfSite: z.number().min(0).max(40).optional(), pctOfSiteDepthFt: z.number().min(1).max(20).optional(), runoffDepthIn: z.number().min(0).max(12).optional(), basinDepthFt: z.number().min(1).max(20).optional(), maxBasins: z.number().int().min(1).max(6).optional() })
       .optional()
       .describe('Stormwater reservation rule (planning-level).'),
   }),
@@ -655,7 +655,7 @@ defineCommand({
   description:
     'Add a manual stormwater basin footprint (planning-level reservation): center = [x, y] in site CRS feet, lengthFt × widthFt ' +
     'at the top of bank, rotationDeg (degrees CCW from east). Optional topElevFt (top-of-berm elevation, ft; default: from ' +
-    'existing ground when graded) and depthFt (default 6 ft + 1 ft freeboard, 3:1 sides). Manual basins persist and reduce ' +
+    'existing ground when graded) and depthFt (storage depth; default 3 ft for the area-based reservation, plus 1 ft freeboard, 3:1 sides). Manual basins persist and reduce ' +
     'the automatic reservation by their area. Returns the id, area (ac) and storage volume (CF).',
   input: z.object({ center: PtSchema, lengthFt: z.number().min(40).max(3000), widthFt: z.number().min(40).max(3000), rotationDeg: z.number().default(0), topElevFt: z.number().optional(), depthFt: z.number().min(1).max(20).optional(), name: z.string().max(60).optional() }),
   mutates: true,
@@ -665,7 +665,7 @@ defineCommand({
     const s = activeScenario(p);
     const id = nextManualId(s, 'basin');
     const polygon = orientedRect(input.center, input.lengthFt, input.widthFt, input.rotationDeg);
-    const depthFt = input.depthFt ?? s.stormwater.basinDepthFt;
+    const depthFt = input.depthFt ?? basinDepthFor(s.stormwater);
     const basin: Basin = {
       id,
       name: input.name ?? 'Stormwater basin (manual)',

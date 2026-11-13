@@ -237,6 +237,8 @@ export type RetainingWall = {
   /** Representative location (centroid of wall cells). */
   at: Pt;
   betweenObjectIds: string[];
+  /** dockWing = the short return wall where the dock-height truck court meets the pad at a building corner (expected). */
+  kind: 'retaining' | 'dockWing';
 };
 export type EarthworkReport = {
   ffeFt: number;
@@ -251,7 +253,9 @@ export type EarthworkReport = {
   /** Volume of pavement/slab sections removed from fill (finished grade → subgrade), CY. */
   sectionAdjustmentCy: number;
   byCategory: { category: EarthworkCategory; cutCy: number; fillCy: number; areaSf: number }[];
+  /** Site retaining walls (dock wing walls are listed separately). */
   walls: RetainingWall[];
+  dockWingWalls: RetainingWall[];
   wallTotalLengthFt: number;
   wallMaxHeightFt: number;
   offsiteAreaSf: number;
@@ -262,6 +266,10 @@ export type EarthworkReport = {
   balance?: { targetNetCy: number; achieved: boolean; note: string };
   drives: { id: string; name: string; gradePct: number; maxGradePct: number; startElevFt: number; endElevFt: number; lengthFt: number }[];
   spots: { label: string; at: Pt; elevFt: number }[];
+  /** Slopes measured on the proposed grid: whole parking fields and their accessible stalls/aisles. */
+  slopes: { id: string; name: string; kind: 'parking' | 'ada'; slopePct: number }[];
+  /** Tie-in slope area steeper than the preferred (4:1) and maximum (3:1) slopes, SF. */
+  steepTieInSf: { overPreferred: number; overMax: number };
 };
 
 export type Assumption = { key: string; label: string; value: string; source: string; changed: boolean };

@@ -10,9 +10,15 @@ export const STORMWATER_DEFAULTS = {
    * as-built (~10 ac of basins on ~110 ac per the 2020 Planning Commission minutes).
    */
   pctOfSite: 9,
+  /**
+   * Method 'pctOfSite': basin storage depth, ft. EFCG default. The ~10 ac as-built calibration implies wide,
+   * shallow basins: 3 in of runoff over ~21 ac of impervious is only ~5 ac-ft, i.e. about 0.5 ft over 10 ac.
+   * 3 ft + freeboard keeps the reservation's excavation from dominating the concept earthwork.
+   */
+  pctOfSiteDepthFt: 3,
   /** Method 'runoffDepth': inches of runoff captured over new impervious area. EFCG default. */
   runoffDepthIn: 3.0,
-  /** Basin design (storage) depth, ft. EFCG default. */
+  /** Method 'runoffDepth': basin design (storage) depth, ft. EFCG default. */
   basinDepthFt: 6,
   /** Freeboard above the design water surface, ft. EFCG default. */
   freeboardFt: 1,
@@ -28,8 +34,9 @@ export const STORMWATER_DEFAULT_METHOD: StormwaterCriteria['method'] = 'pctOfSit
 
 export const STORMWATER_META: Record<keyof typeof STORMWATER_DEFAULTS, CriterionMeta> = {
   pctOfSite: { label: 'Basin reservation (pctOfSite method)', units: '% of parcel', source: 'EFCG default calibrated to as-built (~10 ac on ~110 ac, 2020 PC minutes)' },
+  pctOfSiteDepthFt: { label: 'Basin storage depth (pctOfSite method)', units: 'ft', source: 'EFCG default (wide, shallow basins implied by the as-built calibration)' },
   runoffDepthIn: { label: 'Runoff depth over new impervious (runoffDepth method)', units: 'in', source: 'EFCG default' },
-  basinDepthFt: { label: 'Basin design depth', units: 'ft', source: 'EFCG default' },
+  basinDepthFt: { label: 'Basin storage depth (runoffDepth method)', units: 'ft', source: 'EFCG default' },
   freeboardFt: { label: 'Basin freeboard', units: 'ft', source: 'EFCG default' },
   sideSlopeHtoV: { label: 'Basin side slope', units: 'H:1V', source: 'EFCG default' },
   maxBasins: { label: 'Max basins', units: 'count', source: 'EFCG default' },

@@ -172,7 +172,7 @@ export function textAngle(dir: Pt): number {
   return a;
 }
 
-function drawContours(ctx: CanvasRenderingContext2D, v: View, sets: ContourSet[], minor: string, index: string, labels: LabelReq[] | null, labelColor: string, minorEvery: number): void {
+export function drawContours(ctx: CanvasRenderingContext2D, v: View, sets: ContourSet[], minor: string, index: string, labels: LabelReq[] | null, labelColor: string, minorEvery: number): void {
   // Thin out minor contours when zoomed out so the plan stays readable.
   const showMinor = v.scale > 0.22;
   for (const pass of [0, 1]) {

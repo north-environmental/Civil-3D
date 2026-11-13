@@ -18,6 +18,7 @@ import {
 } from '@groundwork/core';
 import type { AppState } from '../lib/app';
 import { type LabelReq, type Overlay, type View, fillRegion, pathRing, strokeLine, textAngle, w2s } from './draw';
+import { surfaces } from './surfaces';
 import type { Palette } from './theme';
 
 const stallCache = new WeakMap<ParkingField, StallGeometry>();
@@ -110,6 +111,9 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
     const c = sc.layoutCriteria;
     const building = objs.find((o): o is Building => o.type === 'building');
     const showLabels = s.layers.labels;
+    // With the cut/fill map on, draw pavement and the building as outlines so the heatmap reads through.
+    const heat = s.layers.cutfill && !!surfaces.get().cutfill;
+    if (heat) ctx.globalAlpha = 0.16;
     const label = (text: string, at: Pt, priority: number, o: Partial<LabelReq> = {}) => {
       if (!showLabels) return;
       const p = w2s(v, at);
@@ -120,9 +124,9 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
     // Landscape --------------------------------------------------------------------------------
     for (const o of objs) {
       if (o.type !== 'landscape') continue;
-      ctx.globalAlpha = o.kind === 'buffer' ? 0.5 : 0.8;
+      ctx.globalAlpha = (heat ? 0.2 : 1) * (o.kind === 'buffer' ? 0.5 : 0.8);
       fillRegion(ctx, v, [o.polygon], pal.landscape);
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = heat ? 0.16 : 1;
     }
     // Basins -----------------------------------------------------------------------------------
     for (const o of objs) {
@@ -201,6 +205,7 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
       }
       label(`${o.name.toUpperCase()}\n${o.stallsTotal} stalls · ${o.stallsAda} ADA (${o.stallsVan} van)`, ringCentroid(o.polygon), 6, { size: 10.5 });
     }
+    ctx.globalAlpha = 1;
     // Drive centerlines (network colors) ---------------------------------------------------------
     for (const o of objs) {
       if (o.type !== 'drive') continue;
@@ -213,7 +218,8 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
     }
     // Building ---------------------------------------------------------------------------------
     if (building) {
-      fillRegion(ctx, v, [building.polygon], pal.building, pal.buildingStroke, 1.4);
+      if (heat) fillRegion(ctx, v, [building.polygon], 'rgba(201,206,214,0.12)', pal.buildingStroke, 1.6);
+      else fillRegion(ctx, v, [building.polygon], pal.building, pal.buildingStroke, 1.4);
       fillRegion(ctx, v, [officeRing(building)], 'rgba(76,141,255,0.22)', 'rgba(76,141,255,0.8)', 0.8);
       drawDockDoors(ctx, v, building, c.dockDoorSpacingFt, pal);
       const ffe = sc.grading.ffeFt;
@@ -222,7 +228,7 @@ export function drawDesign(s: AppState, pal: Palette): Overlay {
         `${fmtInt(building.areaSf)} SF ${building.buildingType === 'crossDock' ? 'CROSS-DOCK' : 'REAR-LOAD'}\n${fmtInt(building.lengthFt)} × ${fmtInt(building.depthFt)} ft · ${building.clearHeightFt} ft clear · ${building.dockDoors} doors${ffe !== null && sc.grading.graded ? `\nFFE ${ffe.toFixed(1)}` : ''}`,
         building.center,
         10,
-        { color: s.theme === 'light' ? '#ffffff' : '#15181d', halo: s.theme === 'light' ? 'rgba(143,151,163,0.9)' : 'rgba(201,206,214,0.9)', size: 12, bold: true, angle: textAngle(dir) },
+        heat ? { color: pal.text, size: 12, bold: true, angle: textAngle(dir) } : { color: s.theme === 'light' ? '#ffffff' : '#15181d', halo: s.theme === 'light' ? 'rgba(143,151,163,0.9)' : 'rgba(201,206,214,0.9)', size: 12, bold: true, angle: textAngle(dir) },
       );
     }
 

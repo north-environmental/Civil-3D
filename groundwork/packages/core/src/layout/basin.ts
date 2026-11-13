@@ -20,6 +20,11 @@ export function basinStorageCf(topW: number, topL: number, depthFt: number, free
   return (depthFt / 3) * (a1 + a0 + Math.sqrt(a1 * a0));
 }
 
+/** Storage depth used for a basin under the active sizing method. */
+export function basinDepthFor(sw: StormwaterCriteria): number {
+  return sw.method === 'pctOfSite' ? sw.pctOfSiteDepthFt : sw.basinDepthFt;
+}
+
 /** Required basin surface area (top of bank), SF. */
 export function requiredBasinAreaSf(sw: StormwaterCriteria, parcelAreaSf: number, imperviousSf: number): { areaSf: number; storageCf: number | null; basis: string } {
   if (sw.method === 'pctOfSite') {
@@ -131,10 +136,10 @@ export function placeBasins(opts: {
       type: 'basin',
       polygon,
       areaSf: wFt * hFt,
-      depthFt: sw.basinDepthFt,
+      depthFt: basinDepthFor(sw),
       freeboardFt: sw.freeboardFt,
       sideSlopeHtoV: sw.sideSlopeHtoV,
-      storageCf: basinStorageCf(Math.min(wFt, hFt), Math.max(wFt, hFt), sw.basinDepthFt, sw.freeboardFt, sw.sideSlopeHtoV),
+      storageCf: basinStorageCf(Math.min(wFt, hFt), Math.max(wFt, hFt), basinDepthFor(sw), sw.freeboardFt, sw.sideSlopeHtoV),
       topElevFt: null,
       meanExistingElevFt: best.elev,
     });

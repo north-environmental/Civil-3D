@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import type { Pt } from '@groundwork/core';
 import { app, useApp } from '../lib/app';
 import { derived, ensureExistingContours } from './derived';
-import { type View, drawPlan, fitView, s2w } from './draw';
+import { type Overlay, type View, drawPlan, fitView, s2w } from './draw';
 import { drawImagery } from './imagery';
-import { buildOverlays } from './overlays';
+import { buildOverlays, buildUnderlays } from './overlays';
+import { ensureSurfaces, surfaces } from './surfaces';
 import { DARK, LIGHT } from './theme';
 import { attachInteractions } from './interact';
 
@@ -51,6 +52,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
         fittedFor = key;
       }
       ensureExistingContours(s.dem);
+      ensureSurfaces(s);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawPlan(ctx, h.view, {
         project: s.project,
@@ -59,7 +61,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
         palette: s.theme === 'light' ? LIGHT : DARK,
         selection: s.selection,
         existingContours: derived.get().existingContours,
-        underlays: site && s.layers.imagery ? [(c, vw) => drawImagery(c, vw, site, h.redraw)] : [],
+        underlays: [...(site && s.layers.imagery ? [((c, vw) => drawImagery(c, vw, site, h.redraw)) as Overlay] : []), ...buildUnderlays(s)],
         overlays: buildOverlays(s),
         showChrome: true,
       });
@@ -87,6 +89,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
 
     const unsubA = app.subscribe(h.redraw);
     const unsubD = derived.subscribe(h.redraw);
+    const unsubS = surfaces.subscribe(h.redraw);
     const ro = new ResizeObserver(h.redraw);
     ro.observe(wrap);
     const detach = renderMode ? () => undefined : attachInteractions(canvas, h);
@@ -95,6 +98,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
     return () => {
       unsubA();
       unsubD();
+      unsubS();
       ro.disconnect();
       detach();
       if (raf) cancelAnimationFrame(raf);

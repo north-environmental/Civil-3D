@@ -74,7 +74,7 @@ generate_layout {"alignToRoad":"Heilmandale Rd","docksAwayFromResidential":true}
 
 Placed 410,400 SF cross-dock, 760 × 540 ft, long axis at 5.5° (parallel to Heilmandale Rd), in the E part of the site; docks face N and S, cars on the W side. 110 dock doors, 126 trailer stalls, 357 car stalls, 10.0 ac stormwater reservation. All hard checks pass.
 
-_Rationale:_ Chose this position out of 506 feasible candidates (3,510 tried): 357 of 350 car stalls, 126 trailer stalls, 110 dock doors; existing ground under the pad and courts varies by σ 6.0 ft (flatter is cheaper to grade); truck apron about 632 ft and parking about 1247 ft from their assigned frontages; a dock court faces a residential district (mitigated by distance and the buffer planting).
+_Rationale:_ Chose this position out of 506 feasible candidates (3,510 tried): 357 of 350 car stalls, 126 trailer stalls, 110 dock doors; existing ground under the pad and courts varies by σ 6.0 ft (flatter is cheaper to grade); truck apron about 627 ft and parking about 1151 ft from their assigned frontages; a dock court faces a residential district (mitigated by distance and the buffer planting); drive grades allow the floor to sit at mean existing ground.
 
 - Requested 410,000 SF; placed 410,400 SF (760 × 540 ft, length rounded up to the next foot).
 
@@ -84,7 +84,31 @@ _Rationale:_ Chose this position out of 506 feasible candidates (3,510 tried): 3
 run_checks {"statusFilter":["fail","warn"]}
 ```
 
-Scenario A: 38 pass, 1 warn, 0 fail, 1 n/a. No failing checks.
+Scenario A: 41 pass, 1 warn, 0 fail, 2 n/a. No failing checks.
+
+### Step 7: Grade the site at the default finished floor elevation
+
+```
+grade_site {}
+```
+
+Graded scenario A at FFE 492.1 ft: cut 248,304 CY, fill 30,819 CY, net 192,654 CY surplus (export) after 10% shrink (to subgrade; 5 ft grid). No retaining walls (4 dock wing walls at building corners). No offsite grading.
+
+### Step 7: Optimize the FFE to balance cut and fill
+
+```
+optimize_ffe {"targetNetCy":0}
+```
+
+Optimized FFE for scenario A: Balanced at FFE 497.4 ft: net 802 CY is 0.3% of the 280,693 CY moved (tolerance ±2%). FFE 497.4 ft: cut 148,155 CY, fill 132,537 CY, net 802 CY surplus (export) after 10% shrink (to subgrade; 5 ft grid). No retaining walls (4 dock wing walls at building corners). No offsite grading.
+
+### Step 7: Report cut / fill / net, walls and offsite grading
+
+```
+get_earthwork_report {}
+```
+
+FFE 497.4 ft: cut 148,155 CY, fill 132,537 CY, net 802 CY surplus (export) after 10% shrink (to subgrade; 5 ft grid). No retaining walls (4 dock wing walls at building corners). No offsite grading. Largest movers: truck courts (cut 52,100, fill 26,799 CY); basins (cut 71,725, fill 2,344 CY); building pad (cut 2,954, fill 67,943 CY).
 
 ### Step 8: Scenario B: branch the design
 
@@ -100,11 +124,19 @@ Created scenario B as a copy of A and switched to it.
 generate_layout {"alignToRoad":"Route 72"}
 ```
 
-Placed 410,400 SF cross-dock, 760 × 540 ft, long axis at 90.6° (parallel to Route 72), in the NE part of the site; docks face W and E, cars on the S side. 110 dock doors, 126 trailer stalls, 357 car stalls, 10.0 ac stormwater reservation. 1 check(s) failing: Screen planting for long W/SW/NW walls.
+Placed 410,400 SF cross-dock, 760 × 540 ft, long axis at 90.6° (parallel to Route 72), in the NE part of the site; docks face W and E, cars on the S side. 110 dock doors, 126 trailer stalls, 357 car stalls, 9.9 ac stormwater reservation. 1 check(s) failing: Screen planting for long W/SW/NW walls.
 
-_Rationale:_ Chose this position out of 549 feasible candidates (3,510 tried): 357 of 350 car stalls, 126 trailer stalls, 110 dock doors; existing ground under the pad and courts varies by σ 4.9 ft (flatter is cheaper to grade); truck apron about 378 ft and parking about 1898 ft from their assigned frontages; no dock court faces a residential district at close range.
+_Rationale:_ Chose this position out of 549 feasible candidates (3,510 tried): 357 of 350 car stalls, 126 trailer stalls, 110 dock doors; existing ground under the pad and courts varies by σ 5.1 ft (flatter is cheaper to grade); truck apron about 704 ft and parking about 1391 ft from their assigned frontages; no dock court faces a residential district at close range; drive grades allow the floor to sit at mean existing ground.
 
 - Requested 410,000 SF; placed 410,400 SF (760 × 540 ft, length rounded up to the next foot).
+
+### Step 8: Scenario B: balance the earthwork
+
+```
+optimize_ffe {"targetNetCy":0}
+```
+
+Optimized FFE for scenario B: Balanced at FFE 499.4 ft: net -1,284 CY is 0.4% of the 320,265 CY moved (tolerance ±2%). FFE 499.4 ft: cut 167,885 CY, fill 152,381 CY, net 1,284 CY deficit (import) after 10% shrink (to subgrade; 5 ft grid). No retaining walls (4 dock wing walls at building corners). No offsite grading.
 
 ### Step 8: Compare A vs B
 
@@ -121,13 +153,13 @@ Compared 2 scenario(s): A, B.
 | Trailer stalls | 126 | 126 |
 | Car stalls | 357 | 357 |
 | Building coverage | 8.6% | 8.6% |
-| Impervious | 19.2% | 19.1% |
-| Checks (pass / warn / fail) | 38 / 1 / 0 | 37 / 1 / 1 |
-| FFE | not graded | not graded |
-| Cut | — | — |
-| Fill | — | — |
-| Net (+export / −import) | — | — |
-| Retaining wall length | — | — |
+| Impervious | 19.2% | 19.2% |
+| Checks (pass / warn / fail) | 47 / 2 / 0 | 45 / 3 / 1 |
+| FFE | 497.4 ft | 499.4 ft |
+| Cut | 148,155 CY | 167,885 CY |
+| Fill | 132,537 CY | 152,381 CY |
+| Net (+export / −import) | 802 CY | -1,284 CY |
+| Retaining wall length | 0 ft | 0 ft |
 
 ### Step 9: Back to scenario A
 
@@ -139,7 +171,7 @@ Switched to scenario A (Scenario A).
 
 ## Final state
 
-1625 Heilmandale Rd (synthetic fixture) (SYNTHETIC fixture), 109.6 ac; scenario A; 15 objects; 0 failing / 1 warning checks; not graded.
+1625 Heilmandale Rd (synthetic fixture) (SYNTHETIC fixture), 109.6 ac; scenario A; 15 objects; 0 failing / 2 warning checks; FFE 497.4 ft, net 802 CY.
 
 | Yield | Value | Limit / basis |
 |---|---|---|
@@ -147,11 +179,11 @@ Switched to scenario A (Scenario A).
 | Building area | 410,400 SF | 760 × 540 ft cross-dock; program 410,000 SF |
 | Lot coverage (building) | 8.6% | ≤ 50% · § 27-1003 |
 | Floor area ratio | 0.086 | single story |
-| Impervious area | 21.1 ac | 918,975 SF |
+| Impervious area | 21.0 ac | 915,344 SF |
 | Impervious cover | 19.2% | see coverage flag · § 27-1003 |
-| Truck pavement | 346,134 SF |  |
-| Car pavement | 162,441 SF |  |
-| Landscaped area | 67.2% | ≥ 15% · § 27-1304.1.A.1 |
+| Truck pavement | 344,820 SF |  |
+| Car pavement | 160,124 SF |  |
+| Landscaped area | 67.3% | ≥ 15% · § 27-1304.1.A.1 |
 | Car stalls | 357 | ≥ 310 (item S + W); 350 under item V + W · § 27-1405 (item S) |
 | Accessible stalls (incl. van) | 8 (2 van) | per facility · 2010 ADA Standards Table 208.2; § 208.2.4 |
 | Trailer stalls | 126 | program: max |
@@ -159,4 +191,4 @@ Switched to scenario A (Scenario A).
 | Loading berths | 110 provided | ≥ 13 (12 if rounded down) · § 27-1408 |
 | Stormwater reservation (1 basin) | 10.00 ac | 9.87 ac planning reservation: 9% of the 109.6 ac parcel (pctOfSite method) · EFCG default; not a hydrologic design |
 
-_Total: 4.8 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._
+_Total: 5.2 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._

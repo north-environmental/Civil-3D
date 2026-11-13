@@ -42,6 +42,7 @@ describe('MCP server', () => {
       'load_site', 'set_zoning_rules', 'confirm_zoning_rules', 'add_constraint',
       'set_program', 'place_building', 'set_access', 'generate_layout', 'edit_object', 'delete_object', 'add_parking_field', 'add_trailer_field', 'add_basin',
       'create_scenario', 'switch_scenario', 'compare_scenarios',
+      'set_grading_criteria', 'grade_site', 'optimize_ffe', 'get_earthwork_report', 'cut_section',
       'log_note', 'undo', 'redo',
     ])
       expect(names, required).toContain(required);

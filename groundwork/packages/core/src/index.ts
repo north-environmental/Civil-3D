@@ -20,3 +20,6 @@ export * from './layout/solver';
 export * from './layout/yield';
 export * from './layout/landscape';
 export * from './demo/headline';
+export * from './grading/engine';
+export * from './grading/objects';
+export * from './grading/scenario';

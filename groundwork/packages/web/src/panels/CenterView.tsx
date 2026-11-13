@@ -1,5 +1,31 @@
-import { runCommand, useApp } from '../lib/app';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { app, runCommand, useApp, useScenario } from '../lib/app';
+import { useStore } from '../lib/store';
 import { PlanView } from '../plan/PlanView';
+import { surfaces } from '../plan/surfaces';
+import { SectionPanel } from './SectionPanel';
+
+const View3D = lazy(() => import('../view3d/View3D'));
+
+export function CutFillLegend() {
+  const scale = useStore(surfaces, (s) => s.scaleFt);
+  const has = useStore(surfaces, (s) => !!s.cutfill);
+  const on = useApp((s) => s.layers.cutfill);
+  if (!has || !on) return null;
+  return (
+    <div className="legend" data-testid="cutfill-legend">
+      <div>
+        <b>Cut / fill depth</b> <span className="dim">(proposed − existing, ft)</span>
+      </div>
+      <div className="ramp" />
+      <div className="ticks">
+        <span>−{scale} cut</span>
+        <span>0</span>
+        <span>+{scale} fill</span>
+      </div>
+    </div>
+  );
+}
 
 export function CenterView() {
   const site = useApp((s) => s.project?.site ?? null);
@@ -8,10 +34,51 @@ export function CenterView() {
   const busy = useApp((s) => s.busy);
   const tip = useApp((s) => s.hoverTip);
   const demo = useApp((s) => s.demo);
+  const view = useApp((s) => s.view);
+  const tool = useApp((s) => s.tool);
+  const surface3d = useApp((s) => s.surface3d);
+  const drape3d = useApp((s) => s.drape3d);
+  const graded = useScenario()?.grading.graded ?? false;
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(1000);
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(() => setWidth(ref.current?.clientWidth ?? 1000));
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <div className="center" data-testid="center">
+    <div className="center" data-testid="center" ref={ref}>
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex' }}>
-        <PlanView />
+        {view === '2d' ? (
+          <PlanView />
+        ) : (
+          <Suspense fallback={<div className="empty">Loading 3D view…</div>}>
+            <View3D />
+          </Suspense>
+        )}
+        {view === '3d' && site && (
+          <div className="view-toolbar">
+            <div className="seg">
+              <button className={surface3d === 'existing' ? 'on' : ''} onClick={() => app.set({ surface3d: 'existing' })}>
+                Existing
+              </button>
+              <button className={surface3d === 'proposed' ? 'on' : ''} disabled={!graded} onClick={() => app.set({ surface3d: 'proposed' })}>
+                Proposed
+              </button>
+            </div>
+            <div className="seg">
+              <button className={drape3d === 'plain' ? 'on' : ''} onClick={() => app.set({ drape3d: 'plain' })}>
+                Surface
+              </button>
+              <button className={drape3d === 'cutfill' ? 'on' : ''} disabled={!graded} onClick={() => app.set({ drape3d: 'cutfill' })}>
+                Cut / fill
+              </button>
+            </div>
+          </div>
+        )}
+        {view === '2d' && tool === 'section' && <div className="busy" style={{ right: 'auto', left: 12 }}>Section tool: click the start point, then the end point (Esc to cancel)</div>}
+        {view === '2d' && <CutFillLegend />}
         {site?.synthetic && (
           <div className="badge-synth">
             <span className="tag synthetic" data-testid="synthetic-badge" title="No network during the build: parcel, roads, districts, wetland and terrain are generated placeholders. Run npm run fetch-site-data on a networked machine.">
@@ -53,6 +120,7 @@ export function CenterView() {
         )}
         {toastText && <div className="toast">{toastText}</div>}
       </div>
+      {view === '2d' && <SectionPanel width={width} />}
     </div>
   );
 }
