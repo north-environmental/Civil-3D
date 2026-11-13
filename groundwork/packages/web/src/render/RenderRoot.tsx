@@ -15,6 +15,10 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
       if (on) for (const id of on.split(',')) if (id in layers) (layers as any)[id] = true;
       const off = params.get('hide');
       if (off) for (const id of off.split(',')) if (id in layers) (layers as any)[id] = false;
+      // Show a specific scenario (client-side only; the server's active scenario is untouched).
+      const want = params.get('scenario');
+      const proj = app.get().project;
+      if (want && proj && proj.scenarios.some((x) => x.id === want)) app.set({ project: { ...proj, activeScenarioId: want } });
       app.set({ layers });
       setLoaded(true);
     });
@@ -28,6 +32,8 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
       requestAnimationFrame(() => ((window as any).__renderReady = true));
     }
   };
+  const bboxParam = params.get('bbox');
+  const bbox = bboxParam ? (JSON.parse(bboxParam) as [number, number, number, number]) : undefined;
   const site = project?.site;
   const sc = project?.scenarios.find((x) => x.id === project.activeScenarioId);
   return (
@@ -39,7 +45,7 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
           {view} · Concept-level, not for construction{site?.synthetic ? ' · SYNTHETIC SITE DATA' : ''}
         </div>
       </div>
-      {loaded && <PlanView renderMode onDrawn={onDrawn} />}
+      {loaded && <PlanView renderMode onDrawn={onDrawn} bbox={bbox} />}
     </div>
   );
 }

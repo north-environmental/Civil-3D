@@ -35,7 +35,8 @@ describe('zoning commands', () => {
     const r = executeCommand(p, 'get_zoning_rules', {}, { services }).result as any;
     expect(r.rules.length).toBeGreaterThan(30);
     expect(r.rules.every((x: any) => x.status === 'confirmed' && /§ 27-\d{4}/.test(x.citation))).toBe(true);
-    expect(r.interpretationFlags.join(' ')).toMatch(/rounded UP/);
+    expect(r.rules.flatMap((x: any) => x.interpretationFlags ?? []).join(' ')).toMatch(/rounded UP/);
+    expect(r.interpretationFlagCount).toBeGreaterThan(8);
     expect(r.residentialSeparation).toEqual({ buildingFt: 150, parkingFt: 100 });
     expect(r.summary).toMatch(/Front St: building 100 ft/);
     const setbacks = executeCommand(p, 'get_zoning_rules', { category: 'setback' }, { services }).result as any;

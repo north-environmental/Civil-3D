@@ -338,20 +338,25 @@ function ProgramTab() {
   const scenario = useScenario();
   const site = useApp((s) => s.project?.site ?? null);
   const p = scenario?.program;
-  const [f, setF] = useState<Record<string, string>>({});
+  const defaults = (): Record<string, string> => ({
+    buildingSf: String(p?.buildingSf ?? 410000),
+    buildingType: p?.buildingType ?? 'crossDock',
+    clearHeightFt: String(p?.clearHeightFt ?? 40),
+    dockDoors: String(p?.dockDoors ?? 'max'),
+    trailerStalls: String(p?.trailerStalls ?? 'max'),
+    employeesLargestShift: String(p?.employeesLargestShift ?? 300),
+    employeesTwoLargestShifts: String(p?.employeesTwoLargestShifts ?? 520),
+    officeSf: String(p?.officeSf ?? 10000),
+  });
+  const [f, setF] = useState<Record<string, string>>(defaults);
   const key = `${scenario?.id}:${JSON.stringify(p)}`;
+  const lastKey = useRef(key);
   useEffect(() => {
-    setF({
-      buildingSf: String(p?.buildingSf ?? 410000),
-      buildingType: p?.buildingType ?? 'crossDock',
-      clearHeightFt: String(p?.clearHeightFt ?? 40),
-      dockDoors: String(p?.dockDoors ?? 'max'),
-      trailerStalls: String(p?.trailerStalls ?? 'max'),
-      employeesLargestShift: String(p?.employeesLargestShift ?? 300),
-      employeesTwoLargestShifts: String(p?.employeesTwoLargestShifts ?? 520),
-      officeSf: String(p?.officeSf ?? 10000),
-    });
-  }, [key]);
+    // Re-sync the form when the program changes on the server (e.g. Claude called set_program).
+    if (lastKey.current === key) return;
+    lastKey.current = key;
+    setF(defaults());
+  });
   if (!site) return <div className="empty">Load a site to set a program.</div>;
   const num = (v: string) => (v === 'max' || v === '' ? 'max' : Number(v));
   const input = (): Partial<Program> => ({
@@ -369,7 +374,7 @@ function ProgramTab() {
       <label htmlFor={`pf-${k}`}>
         {label} {unit && <span className="dim">({unit})</span>}
       </label>
-      <input id={`pf-${k}`} className="mono" value={f[k] ?? ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
+      <input id={`pf-${k}`} className="mono" value={f[k] ?? ''} onChange={(e) => setF((prev) => ({ ...prev, [k]: e.target.value }))} />
     </>
   );
   return (
@@ -377,7 +382,7 @@ function ProgramTab() {
       <div className="form">
         {fld('buildingSf', 'Building area', 'SF')}
         <label htmlFor="pf-type">Building type</label>
-        <select id="pf-type" value={f.buildingType} onChange={(e) => setF({ ...f, buildingType: e.target.value })}>
+        <select id="pf-type" value={f.buildingType} onChange={(e) => setF((prev) => ({ ...prev, buildingType: e.target.value }))}>
           <option value="crossDock">Cross-dock</option>
           <option value="rearLoad">Rear-load</option>
         </select>

@@ -1,7 +1,7 @@
 /** Overlays drawn above the site base: zoning envelopes, design objects, grading results. */
 import { type Envelopes, type Site, buildEnvelopes, fmtAc, ringArea, ringCentroid } from '@groundwork/core';
 import type { AppState, ClientProject } from '../lib/app';
-import { type Overlay, fillRegion, w2s } from './draw';
+import { type Overlay, fillRegion, strokeLine, w2s } from './draw';
 import { drawDesign } from './design';
 import { DARK, LIGHT } from './theme';
 
@@ -32,5 +32,27 @@ export function buildOverlays(s: AppState): Overlay[] {
     });
   }
   if (s.layers.design) out.push(drawDesign(s, pal));
+  if (s.ghost) {
+    const ghost = s.ghost;
+    out.push((ctx, v) => {
+      ctx.setLineDash([6, 4]);
+      fillRegion(ctx, v, ghost, 'rgba(76,194,255,0.12)', pal.selection, 1.5);
+      ctx.setLineDash([]);
+    });
+  }
+  if (s.sectionLine) {
+    const [a, b] = s.sectionLine;
+    out.push((ctx, v, labels) => {
+      strokeLine(ctx, v, [a, b], '#ff7ad9', 1.6, [8, 4]);
+      for (const [pt, name] of [[a, 'A'], [b, "A'"]] as const) {
+        const q = w2s(v, pt);
+        ctx.beginPath();
+        ctx.arc(q[0], q[1], 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff7ad9';
+        ctx.fill();
+        if (a !== b) labels.push({ text: name, x: q[0] + 10, y: q[1] - 10, priority: 20, color: '#ff7ad9', bold: true, size: 12 });
+      }
+    });
+  }
   return out;
 }

@@ -417,6 +417,9 @@ table.data td {
   border-bottom: 1px solid var(--border-soft);
   vertical-align: top;
 }
+table.data td:first-child {
+  width: 37%;
+}
 table.data td.cite {
   color: var(--text-faint);
   font-size: 10.5px;

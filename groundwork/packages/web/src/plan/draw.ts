@@ -14,7 +14,7 @@ import type { ClientProject, LayerId } from '../lib/app';
 import type { Palette } from './theme';
 
 export type View = { scale: number; cx: number; cy: number; w: number; h: number };
-export type LabelReq = { text: string; x: number; y: number; priority: number; color?: string; size?: number; bold?: boolean; angle?: number; mono?: boolean };
+export type LabelReq = { text: string; x: number; y: number; priority: number; color?: string; size?: number; bold?: boolean; angle?: number; mono?: boolean; halo?: string };
 export type Overlay = (ctx: CanvasRenderingContext2D, view: View, labels: LabelReq[]) => void;
 
 export type Scene = {
@@ -152,7 +152,7 @@ export function placeLabels(ctx: CanvasRenderingContext2D, labels: LabelReq[], p
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = pal.halo;
+    ctx.strokeStyle = l.halo ?? pal.halo;
     ctx.lineWidth = 3.5;
     ctx.fillStyle = l.color ?? pal.text;
     lines.forEach((t, i) => {

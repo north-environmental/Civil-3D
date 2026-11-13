@@ -11,7 +11,7 @@ import { attachInteractions } from './interact';
 export type PlanHandle = { view: View; fit: () => void; redraw: () => void };
 
 /** Shared by the interactive view and render mode. */
-export function PlanView({ renderMode = false, onDrawn }: { renderMode?: boolean; onDrawn?: () => void }) {
+export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: boolean; onDrawn?: () => void; bbox?: [number, number, number, number] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const handle = useRef<PlanHandle | null>(null);
@@ -71,9 +71,14 @@ export function PlanView({ renderMode = false, onDrawn }: { renderMode?: boolean
     h.fit = () => {
       const site = app.get().project?.site;
       if (!site) return;
-      const pts: Pt[] = site.parcel.ring.slice();
+      const pts: Pt[] = bbox
+        ? [
+            [bbox[0], bbox[1]],
+            [bbox[2], bbox[3]],
+          ]
+        : site.parcel.ring.slice();
       // Include a margin of context (roads / neighbors) around the parcel.
-      const v = fitView(pts, h.view.w, h.view.h, renderMode ? 70 : 90);
+      const v = fitView(pts, h.view.w, h.view.h, bbox ? 20 : renderMode ? 70 : 90);
       h.view.scale = v.scale;
       h.view.cx = v.cx;
       h.view.cy = v.cy;

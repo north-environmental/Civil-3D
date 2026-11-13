@@ -15,12 +15,8 @@ function ruleBrief(r: ZoningRule) {
     label: r.label,
     value: r.value,
     units: r.units,
-    operator: r.operator,
-    appliesTo: r.appliesTo,
-    edgeCondition: r.edgeCondition,
     citation: r.citation.section,
     quote: r.citation.quote,
-    source: r.citation.source,
     status: r.confirmed ? 'confirmed' : 'proposed (unconfirmed)',
     ...(r.interpretationFlags?.length ? { interpretationFlags: r.interpretationFlags } : {}),
   };
@@ -63,7 +59,7 @@ defineCommand({
         residentialSeparation: { buildingFt: env.residentialBuildingSepFt, parkingFt: env.residentialParkingSepFt },
         envelopes: { buildingAc: +(env.areas.buildingSf / 43560).toFixed(2), parkingAc: +(env.areas.parkingSf / 43560).toFixed(2), loadingAc: +(env.areas.loadingSf / 43560).toFixed(2) },
         rules: list.map(ruleBrief),
-        interpretationFlags: flags,
+        interpretationFlagCount: flags.length,
       },
     };
   },

@@ -274,6 +274,8 @@ export type ScenarioPrefs = {
   docksAwayFromResidential: boolean;
   /** Add the trailer row opposite the docks in each truck court. */
   trailerRowInCourts: boolean;
+  /** Ids of auto-generated objects hidden by delete_object until the layout is regenerated. */
+  omit?: string[];
 };
 
 export type Scenario = {

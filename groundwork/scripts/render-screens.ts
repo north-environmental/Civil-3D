@@ -56,6 +56,19 @@ async function main() {
     await page.mouse.move(box.x + tipAt[0], box.y + tipAt[1]);
     await shot('02-zoning-envelopes.png');
     await page.click('[data-testid="tab-checks"]');
+
+    // Phase 3: headline test fit (commands only, as Claude would issue them over MCP)
+    await app.cmd('set_program', { buildingSf: 410000, buildingType: 'crossDock', clearHeightFt: 40, dockDoors: 'max', trailerStalls: 'max', employeesLargestShift: 300, employeesTwoLargestShifts: 520 }, 'mcp');
+    await app.cmd('set_access', { network: 'truck', road: 'Route 72' }, 'mcp');
+    await app.cmd('set_access', { network: 'truck', road: 'Heilmandale Rd' }, 'mcp');
+    await app.cmd('set_access', { network: 'car', road: 'Orange Ln', exclusive: true }, 'mcp');
+    await app.cmd('generate_layout', { alignToRoad: 'Heilmandale Rd' }, 'mcp');
+    await page.waitForFunction(() => document.querySelectorAll('.tree-item').length > 5);
+    await page.mouse.move(1500, 1000);
+    await shot('03-layout-plan-checks.png');
+    await page.click('[data-testid="tab-yield"]');
+    await shot('03-layout-yield.png');
+    await page.click('[data-testid="tab-checks"]');
     await page.close();
   } finally {
     await browser.close();

@@ -1,5 +1,5 @@
 /** Client state: project (from the server over WebSocket), UI state, command API. */
-import type { Grid, Project, Pt, Scenario } from '@groundwork/core';
+import type { Grid, Project, Pt, Region, Scenario } from '@groundwork/core';
 import { createStore, useStore } from './store';
 
 export type ClientProject = Omit<Project, 'history'> & { history: { undoDepth: number; redoDepth: number } };
@@ -51,6 +51,8 @@ export type AppState = {
   rightTab: RightTab;
   tool: Tool;
   sectionLine: [Pt, Pt] | null;
+  /** Outline of an in-progress drag edit (plan view). */
+  ghost: Region | null;
   cursor: { x: number; y: number } | null;
   console: ConsoleLine[];
   busy: string | null;
@@ -83,6 +85,7 @@ export const app = createStore<AppState>({
   rightTab: 'checks',
   tool: 'select',
   sectionLine: null,
+  ghost: null,
   cursor: null,
   console: [],
   busy: null,
