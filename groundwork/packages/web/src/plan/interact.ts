@@ -1,7 +1,8 @@
 /** Pointer interactions for the plan view: pan, zoom, cursor readout. (Editing handles: Phase 3.) */
-import type { Pt } from '@groundwork/core';
+import { type Pt, type Site, governingRuleAt } from '@groundwork/core';
 import { app } from '../lib/app';
 import { s2w } from './draw';
+import { envelopesOf } from './overlays';
 import type { PlanHandle } from './PlanView';
 
 export function attachInteractions(canvas: HTMLCanvasElement, h: PlanHandle): () => void {
@@ -34,14 +35,27 @@ export function attachInteractions(canvas: HTMLCanvasElement, h: PlanHandle): ()
       h.view.cy = panning.cy + (p[1] - panning.sy) / h.view.scale;
       h.redraw();
     }
+    const over = ev.target === canvas;
+    if (!over && !panning) {
+      if (app.get().cursor) app.set({ cursor: null, hoverTip: null });
+      return;
+    }
     const w = s2w(h.view, p);
-    app.set({ cursor: { x: w[0], y: w[1] } });
+    // Hover a setback line -> governing rule + citation.
+    let hoverTip: { x: number; y: number; text: string } | null = null;
+    const st = app.get();
+    if (!panning && st.layers.setbacks && st.project?.site && st.project.rules) {
+      const env = envelopesOf(st.project);
+      const g = env ? governingRuleAt(st.project.site as unknown as Site, st.project.rules, env, w, 5 / h.view.scale) : null;
+      if (g) hoverTip = { x: p[0], y: p[1], text: `${g.envelope === 'building' ? 'Building' : 'Parking'} setback: ${g.distanceFt} ft ${g.detail}\n${g.label}\n${g.citation}` };
+    }
+    app.set({ cursor: { x: w[0], y: w[1] }, hoverTip });
   };
   const onUp = () => {
     panning = null;
     canvas.style.cursor = '';
   };
-  const onLeave = () => app.set({ cursor: null });
+  const onLeave = () => app.set({ cursor: null, hoverTip: null });
   const onDbl = () => h.fit();
 
   canvas.addEventListener('wheel', onWheel, { passive: false });

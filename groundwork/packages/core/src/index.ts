@@ -10,3 +10,6 @@ export * from './zoning/edges';
 export * from './site/terrain';
 export * from './zoning/envelopes';
 export * from './testing/fixtures';
+export * from './zoning/checks';
+export * from './layout/building';
+export * from './derive';

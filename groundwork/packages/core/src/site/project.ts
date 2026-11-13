@@ -181,6 +181,8 @@ export type Basin = Base & {
 export type LandscapeArea = Base & {
   type: 'landscape';
   kind: 'screen' | 'buffer' | 'strip';
+  /** Building wall this strip screens, when applicable. */
+  wallSide?: Side;
   polygon: Ring;
   areaSf: number;
   note: string;

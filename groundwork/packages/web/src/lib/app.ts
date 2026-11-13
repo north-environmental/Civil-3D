@@ -202,3 +202,6 @@ export function setTheme(theme: 'dark' | 'light'): void {
     /* ignore */
   }
 }
+
+// Test / screenshot hook (read-only view of the client state).
+(window as any).__gwState = () => app.get();

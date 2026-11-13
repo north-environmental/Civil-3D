@@ -344,3 +344,37 @@ export function roundPt(p: Pt, digits = 2): Pt {
 export function roundRing(r: Ring, digits = 2): Ring {
   return r.map((p) => roundPt(p, digits));
 }
+
+/** Minimum distance between a ring's boundary and a segment (0 if they cross). */
+export function ringToSegmentDist(ring: Ring, a: Pt, b: Pt): number {
+  let best = Infinity;
+  for (let i = 0, n = ring.length; i < n; i++) {
+    const p = ring[i];
+    const q = ring[(i + 1) % n];
+    if (segmentsIntersect(p, q, a, b)) return 0;
+    best = Math.min(best, distToSegment(p, a, b), distToSegment(a, p, q), distToSegment(b, p, q));
+  }
+  return best;
+}
+/** Minimum distance between two rings' boundaries (0 if they cross or one contains the other). */
+export function ringToRingDist(r1: Ring, r2: Ring): number {
+  if (pointInRing(r1[0], r2) || pointInRing(r2[0], r1)) return 0;
+  let best = Infinity;
+  for (let i = 0, n = r2.length; i < n; i++) {
+    best = Math.min(best, ringToSegmentDist(r1, r2[i], r2[(i + 1) % n]));
+    if (best === 0) return 0;
+  }
+  return best;
+}
+export function regionToRingDist(region: Region, ring: Ring): number {
+  let best = Infinity;
+  for (const r of region) best = Math.min(best, ringToRingDist(r, ring));
+  return best;
+}
+/** Outward unit normal of edge i of a CCW ring. */
+export function outwardNormalOf(ring: Ring, i: number): Pt {
+  const a = ring[i];
+  const b = ring[(i + 1) % ring.length];
+  const d = norm(sub(b, a));
+  return [d[1], -d[0]];
+}

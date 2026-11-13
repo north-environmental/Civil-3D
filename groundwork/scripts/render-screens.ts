@@ -34,6 +34,28 @@ async function main() {
     await page.keyboard.press('b');
     await shot('01-site-plan-asbuilt.png');
     await page.keyboard.press('b');
+
+    // Phase 2: zoning envelopes, citation tooltip, rules panel
+    await page.click('[data-testid="tab-zoning"]');
+    const tipAt = await page.evaluate(() => {
+      const plan = (window as any).__plan;
+      // Find a point on the building setback line along Heilmandale Rd: scan down from the parcel's north edge.
+      const st = (window as any).__gwState();
+      const ring = st.project.site.parcel.ring as [number, number][];
+      const nw = ring[5];
+      const ne = ring[4];
+      const mid = [(nw[0] + ne[0]) / 2, (nw[1] + ne[1]) / 2];
+      const d = [ne[0] - nw[0], ne[1] - nw[1]];
+      const l = Math.hypot(d[0], d[1]);
+      const inward = [d[1] / l, -d[0] / l];
+      const w = [mid[0] + inward[0] * 150, mid[1] + inward[1] * 150];
+      const v = plan.view;
+      return [(w[0] - v.cx) * v.scale + v.w / 2, v.h / 2 - (w[1] - v.cy) * v.scale];
+    });
+    const box = (await page.locator('[data-testid="plan-canvas"]').boundingBox())!;
+    await page.mouse.move(box.x + tipAt[0], box.y + tipAt[1]);
+    await shot('02-zoning-envelopes.png');
+    await page.click('[data-testid="tab-checks"]');
     await page.close();
   } finally {
     await browser.close();
