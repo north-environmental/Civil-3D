@@ -2,11 +2,92 @@
 
 _Update after every meaningful step. Newest status at the top._
 
+## Summary for the owner (read this first)
+
+**Status: Phases 0–7 are complete and green.** `npm run verify` passes from a fresh clone (typecheck, lint, 57 unit
+tests incl. hand calcs T1–T13, build, 13 browser e2e tests, 5 MCP tests, 14 QA screenshots).
+
+What you have: a working web app (2D plan, 3D view, checks / yield / earthwork / program / zoning / activity panels,
+section tool, exports), a command layer with 32 commands, and an MCP server that exposes all of them to Claude Desktop
+/ Claude Code. The headline scenario runs end to end through MCP: 410,400 SF cross-dock parallel to Heilmandale Rd,
+110 doors, 126 trailer stalls, 357 car stalls, trucks from Route 72 + Heilmandale Rd, cars only from Orange Ln, networks
+separate, all hard checks pass, balanced at FFE 497.4 ft (148k CY cut / 133k CY fill, net +802 CY), no walls, no offsite
+grading. Scenario B (rotated 90°) balances but fails § 27-1304.1.B.3.b, and the tool says why.
+
+**Three things to know before you demo it:**
+
+1. **The site data is synthetic.** This build ran in a cloud sandbox whose network policy blocked every data host
+   (PASDA, USGS, OSM, FEMA, USFWS, eCode360, township site; all 403). I did not route around it. Per the spec's fallback
+   chain the fixture is a generated ~110 ac parcel / roads / districts / wetland / terrain, labelled SYNTHETIC in the UI
+   and on every export. The zoning values and section numbers are the real extracts from your reference doc.
+2. **`npm run fetch-site-data` is untested against the live services.** Run it on your laptop; expect to fix small
+   things (field names, layer ids) the first time. It leaves the fixture alone if the parcel or DEM fetch fails.
+3. **The DXF was validated by parsing it back, not by opening it in AutoCAD / Civil 3D.** Please open one.
+
+Everything else that is approximate or missing is in `docs/LIMITATIONS.md`. Choices I made on your behalf are in
+`DECISIONS.md` (the ones most worth a second look: the 3 ft basin depth for the 9%-of-site reservation, the solver
+weights, and scenario B being a deliberately failing rotation).
+
+### Run the demo on your laptop
+
+From the `groundwork` folder (Node 20+):
+
+```bash
+npm ci
+```
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+npm run build
+```
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:4310>, click **Load demo site**, then **▶ Demo** for a 40-second replay of the headline scenario.
+
+### Connect Claude Desktop
+
+1. In the `groundwork` folder run `pwd` and copy the path (call it `<ABS>`).
+2. Claude Desktop → Settings → Developer → Edit Config, and add:
+
+```json
+{
+  "mcpServers": {
+    "groundwork": {
+      "command": "node",
+      "args": ["<ABS>/packages/mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+3. Quit and reopen Claude Desktop; "groundwork" should list about 32 tools. Keep `npm run dev` running.
+4. Type: *"Load 1625 Heilmandale Rd in Groundwork and summarize the site."* Then follow `docs/DEMO.md`.
+
+Claude Code instead: `claude mcp add groundwork -- node <ABS>/packages/mcp/dist/index.js`. Details and troubleshooting:
+`docs/MCP_SETUP.md`.
+
+### To get real site data
+
+```bash
+npm run fetch-site-data
+```
+
+Then restart the app and load the site again. Check `data/sites/heilmandale/provenance.json` and the terrain note
+(the script warns if the DEM post-dates construction).
+
 ## Current phase
-Phase 7: Docs and hardening (in progress)
+Stretch list (after Phase 7)
 
 ## Last verify result
-2026-11-13 — `npm run verify` green (typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots).
+2026-11-14 — `npm run verify` green on the working tree AND on a fresh clone (`npm ci && npm run build && npm run verify`):
+typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots. `npm run dev` checked separately
+(Vite middleware mode serves the app, HMR on, commands run, MCP server connects).
 
 ## Done
 - [x] Phase 0: Foundations
@@ -42,12 +123,14 @@ Phase 7: Docs and hardening (in progress)
   - [x] GeoJSON (WGS84) and a 2700 × 1800 (36 : 24) PNG plan sheet with title block
   - [x] Full e2e Playwright run of the demo (the Demo button replays all 20 headline steps in the browser)
   - [x] Engineering checks: ADA counts + slopes, parking / truck-court slopes, drive grades, driveway spacing + widths, walls, offsite grading, tie-in slopes, network separation, height; scenario compare dialog; keyboard help; light theme
-- [ ] Phase 7: Docs and hardening
+- [x] Phase 7: Docs and hardening
+  - [x] `README.md` (what it is, 5-minute quickstart), `docs/DEMO.md` (scripted client demo with exact prompts and expected results), `docs/ARCHITECTURE.md`, `docs/LIMITATIONS.md`, `docs/MCP_SETUP.md`
+  - [x] Fresh-clone test: `git clone` → `npm ci && npm run build && npm run verify` passes
 
 ## Next 3 steps
-1. README.md, docs/DEMO.md, docs/ARCHITECTURE.md, docs/LIMITATIONS.md
-2. Fresh-clone test: `npm ci && npm run build && npm run verify` from a clean checkout
-3. Stretch list (runoff-driven basin sizing, WB-67 swept path, …)
+1. Stretch: WB-67 swept path check at truck entrances
+2. Stretch: runoff-based basin sizing (TR-55 style)
+3. Owner: run `npm run fetch-site-data` on a networked machine; open an exported DXF in Civil 3D
 
 ## Data source log
 Build environment: cloud sandbox with restricted egress. Every data host below was tried **once** on 2026-11-13 and
