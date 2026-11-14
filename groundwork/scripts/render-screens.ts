@@ -129,6 +129,15 @@ async function main() {
     await shot('06-light-theme-asbuilt-activity.png');
     await page.keyboard.press('t');
     await page.keyboard.press('b');
+    // Stretch: WB-67 swept path layer, zoomed to the truck entrances
+    await page.keyboard.press('Escape');
+    await page.locator('.layer-row', { hasText: 'WB-67 swept path' }).click();
+    await page.locator('.layer-row', { hasText: 'Existing contours' }).click();
+    await page.locator('.tree-item', { hasText: 'Truck drive from Heilman' }).click();
+    await page.click('[data-testid="tab-checks"]');
+    await shot('07-swept-path.png');
+    await page.locator('.layer-row', { hasText: 'WB-67 swept path' }).click();
+    await page.locator('.layer-row', { hasText: 'Existing contours' }).click();
     const exp = await app.cmd('export', { formats: ['png'] }, 'script');
     const sheet = (exp.files as { kind: string; path: string }[]).find((f) => f.kind === 'png');
     if (sheet) {

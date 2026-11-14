@@ -16,6 +16,7 @@ export type LayerId =
   | 'asBuilt'
   | 'districts'
   | 'design'
+  | 'sweptPath'
   | 'labels';
 
 export const LAYERS: { id: LayerId; label: string; swatch: string; defaultOn: boolean }[] = [
@@ -28,6 +29,7 @@ export const LAYERS: { id: LayerId; label: string; swatch: string; defaultOn: bo
   { id: 'existingContours', label: 'Existing contours', swatch: '#7d6b52', defaultOn: true },
   { id: 'proposedContours', label: 'Proposed contours', swatch: '#e6e1d6', defaultOn: true },
   { id: 'cutfill', label: 'Cut / fill', swatch: 'linear-gradient(90deg,#d0453a,#2f6fd0)', defaultOn: false },
+  { id: 'sweptPath', label: 'WB-67 swept path', swatch: '#f0b35a', defaultOn: false },
   { id: 'asBuilt', label: 'As-built reference', swatch: '#d67ad2', defaultOn: false },
   { id: 'imagery', label: 'Imagery', swatch: '#4b5d3a', defaultOn: false },
   { id: 'labels', label: 'Labels', swatch: '#9aa7b5', defaultOn: true },

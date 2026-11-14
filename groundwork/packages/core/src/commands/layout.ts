@@ -120,9 +120,9 @@ defineCommand({
     trailerRowInCourts: z.boolean().optional(),
     layoutCriteria: z.record(z.number()).optional().describe('Override layout design defaults by key (see assumptions), e.g. {"dockDoorSpacingFt": 13}.'),
     stormwater: z
-      .object({ method: z.enum(['pctOfSite', 'runoffDepth']).optional(), pctOfSite: z.number().min(0).max(40).optional(), pctOfSiteDepthFt: z.number().min(1).max(20).optional(), runoffDepthIn: z.number().min(0).max(12).optional(), basinDepthFt: z.number().min(1).max(20).optional(), maxBasins: z.number().int().min(1).max(6).optional() })
+      .object({ method: z.enum(['pctOfSite', 'runoffDepth', 'tr55']).optional(), designStormIn: z.number().min(0.1).max(20).optional(), cnPre: z.number().min(30).max(98).optional(), cnPostPervious: z.number().min(30).max(98).optional(), cnImpervious: z.number().min(70).max(100).optional(), pctOfSite: z.number().min(0).max(40).optional(), pctOfSiteDepthFt: z.number().min(1).max(20).optional(), runoffDepthIn: z.number().min(0).max(12).optional(), basinDepthFt: z.number().min(1).max(20).optional(), maxBasins: z.number().int().min(1).max(6).optional() })
       .optional()
-      .describe('Stormwater reservation rule (planning-level).'),
+      .describe('Stormwater reservation rule (planning-level). method: "pctOfSite" (default, % of parcel), "runoffDepth" (inches over new impervious) or "tr55" (curve-number runoff increase for designStormIn inches; supply the real 24-hr storm depth).'),
   }),
   mutates: true,
   handler: (p, input) => {

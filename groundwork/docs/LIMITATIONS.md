@@ -80,8 +80,23 @@ Groundwork is a concept-level planning demo. Nothing it produces is for construc
 - The server recomputes yields, checks and grading after every change; very large sites or 1 ft grids will be slow.
 - Tool results are kept compact; geometry is available through exports, not tool calls.
 
-## Not built (stretch list)
+## Stretch items: what was built and what was not
 
-Rational-method / TR-55 runoff sizing, WB-67 swept paths, multi-building layouts, a second jurisdiction through the
-ordinance-ingestion flow, residential subdivision mode, and the ADA accessible-route tool. Anything completed after
-Phase 7 is listed in PROGRESS.md.
+Built after Phase 7 (each with caveats):
+
+- **WB-67 swept path** (`checks/sweptPath.ts`, layer "WB-67 swept path"): kinematic tractor–semitrailer model along each
+  truck drive, in and out, reported as a pass / warn check. The vehicle dimensions (4.0 + 19.5 + 45.5 + 4.5 = 73.5 ft,
+  8.5 ft wide) were entered from memory of the AASHTO table and **not verified**. The turn from the street into the
+  driveway and the turns inside the truck court are not modeled (the last ~85 ft at the court is excluded).
+- **Runoff-based basin sizing** (`stormwater.method = "tr55"`): NRCS curve-number runoff increase for a 24-hour design
+  storm. The storm depth default (3.0 in) is a **placeholder**; supply the NOAA Atlas 14 value. Curve numbers (71 / 74 / 98,
+  HSG C) are from memory of TR-55 Table 2-2 and unverified. It sizes volume only: no routing, peak-rate control or
+  water-quality volume. The rational method is not implemented.
+- **Accessible-route check** (`check_accessible_route`, command / MCP only): running and cross slopes along a drawn
+  route with ramp and 30 in rise classification. Check only: no "fix" that solves spot elevations, no landing layout,
+  no UI drawing tool.
+- **Second jurisdiction**: demonstrated by a unit test that loads a site with no built-in rule set, proposes a fictional
+  rule set through `set_zoning_rules`, confirms it and gets envelopes and checks from it. No second real ordinance was
+  ingested (no network).
+
+Not built: multi-building layouts, residential subdivision mode, the rational method, the accessible-route "fix".

@@ -65,6 +65,9 @@ export function buildAssumptions(p: Project, s: Scenario): Assumption[] {
   for (const k of Object.keys(STORMWATER_DEFAULTS) as (keyof typeof STORMWATER_DEFAULTS)[]) {
     const m = STORMWATER_META[k];
     const v = s.stormwater[k];
+    // Only list the parameters of the active sizing method (plus the shared ones).
+    const forMethod = /\((.*) method/.exec(m.label)?.[1];
+    if (forMethod && !forMethod.includes(s.stormwater.method)) continue;
     out.push({ key: `stormwater.${k}`, label: m.label, value: `${fmt(v)} ${m.units}`, source: m.source, changed: v !== STORMWATER_DEFAULTS[k] });
   }
   for (const k of Object.keys(GRADING_DEFAULTS) as (keyof typeof GRADING_DEFAULTS)[]) {

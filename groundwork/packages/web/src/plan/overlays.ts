@@ -1,5 +1,5 @@
 /** Overlays drawn above the site base: zoning envelopes, design objects, grading results. */
-import { type Envelopes, type Site, buildEnvelopes, fmtAc, ringArea, ringCentroid } from '@groundwork/core';
+import { type Envelopes, type Site, buildEnvelopes, fmtAc, ringArea, ringCentroid, sweptPaths } from '@groundwork/core';
 import type { AppState, ClientProject } from '../lib/app';
 import { type Overlay, drawContours, fillRegion, strokeLine, w2s } from './draw';
 import { surfaces } from './surfaces';
@@ -77,6 +77,16 @@ export function buildOverlays(s: AppState): Overlay[] {
       for (const sp of ew.spots) {
         const q = w2s(v, sp.at);
         labels.push({ text: `× ${sp.elevFt.toFixed(1)}`, x: q[0] + 22, y: q[1] - 8, priority: 4, color: pal.propIndex, size: 10, mono: true });
+      }
+    });
+  }
+  if (s.layers.sweptPath) {
+    const sc = s.project?.scenarios.find((x) => x.id === s.project!.activeScenarioId);
+    const paths = sc ? sweptPaths(sc.objects) : [];
+    out.push((ctx, v) => {
+      for (const sp of paths) {
+        fillRegion(ctx, v, sp.envelope, 'rgba(240,179,90,0.22)', '#f0b35a', 1);
+        if (sp.overflow.length) fillRegion(ctx, v, sp.overflow, 'rgba(229,83,75,0.55)', '#e5534b', 1.2);
       }
     });
   }

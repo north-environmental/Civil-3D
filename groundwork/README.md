@@ -46,6 +46,7 @@ drive it yourself:
 - **Earthwork** tab → *Optimize FFE (balance)*; press `C` for the cut/fill map, `S` to cut a section, `3` for 3D.
 - **Export ▾** for DXF, GeoJSON, XLSX and a 24 × 36 plan sheet. Press `?` for shortcuts.
 - The command line at the bottom runs any command, e.g. `generate_layout alignToRoad="Route 72"`.
+- Layer **WB-67 swept path** shows the tractor-trailer envelope along the truck drives.
 
 To drive it from Claude, build once and register the MCP server (full steps in [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md)):
 

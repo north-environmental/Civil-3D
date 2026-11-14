@@ -84,7 +84,7 @@ _Rationale:_ Chose this position out of 506 feasible candidates (3,510 tried): 3
 run_checks {"statusFilter":["fail","warn"]}
 ```
 
-Scenario A: 41 pass, 1 warn, 0 fail, 2 n/a. No failing checks.
+Scenario A: 43 pass, 1 warn, 0 fail, 2 n/a. No failing checks.
 
 ### Step 7: Grade the site at the default finished floor elevation
 
@@ -154,7 +154,7 @@ Compared 2 scenario(s): A, B.
 | Car stalls | 357 | 357 |
 | Building coverage | 8.6% | 8.6% |
 | Impervious | 19.2% | 19.2% |
-| Checks (pass / warn / fail) | 47 / 2 / 0 | 45 / 3 / 1 |
+| Checks (pass / warn / fail) | 49 / 2 / 0 | 47 / 3 / 1 |
 | FFE | 497.4 ft | 499.4 ft |
 | Cut | 148,155 CY | 167,885 CY |
 | Fill | 132,537 CY | 152,381 CY |
@@ -207,4 +207,4 @@ Exported scenario A: DXF (16 layers, 973 entities); XLSX (Yield, Compliance, Ear
 | Loading berths | 110 provided | ≥ 13 (12 if rounded down) · § 27-1408 |
 | Stormwater reservation (1 basin) | 10.00 ac | 9.87 ac planning reservation: 9% of the 109.6 ac parcel (pctOfSite method) · EFCG default; not a hydrologic design |
 
-_Total: 7.5 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._
+_Total: 9.2 s. Screenshots: docs/screens/demo-headline-plan.png, docs/screens/demo-headline-asbuilt.png._

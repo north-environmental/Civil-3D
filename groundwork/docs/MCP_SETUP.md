@@ -56,7 +56,7 @@ Edit `claude_desktop_config.json` (Claude Desktop → Settings → Developer →
 ```
 
 On Windows use doubled backslashes or forward slashes in the path, e.g. `"C:/Users/you/groundwork/packages/mcp/dist/index.js"`.
-Quit and reopen Claude Desktop. "groundwork" should appear in the tools list with about 30 tools.
+Quit and reopen Claude Desktop. "groundwork" should appear in the tools list with 33 tools.
 
 ### Claude Code
 
@@ -115,7 +115,7 @@ Every tool is a command (see `GET /api/commands` for the live list with JSON sch
 - **Program / layout:** `set_program`, `place_building`, `set_access`, `generate_layout`, `edit_object`, `delete_object`,
   `add_parking_field`, `add_trailer_field`, `add_basin`
 - **Scenarios:** `create_scenario`, `switch_scenario`, `compare_scenarios`
-- **Grading:** `set_grading_criteria`, `grade_site`, `optimize_ffe`, `get_earthwork_report`, `cut_section`
+- **Grading:** `set_grading_criteria`, `grade_site`, `optimize_ffe`, `get_earthwork_report`, `cut_section`, `check_accessible_route`
 - **Output:** `export`, `log_note`, `undo`, `redo`
 
 The same commands are available in the app's command line (bottom of the window), e.g. `generate_layout alignToRoad="Heilmandale Rd"`.

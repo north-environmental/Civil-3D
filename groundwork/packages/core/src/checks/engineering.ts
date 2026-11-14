@@ -1,7 +1,9 @@
 /** Engineering checks besides zoning (SPEC §5.4). Grading-dependent checks read the earthwork report. */
 import { regionToRingDist } from '../geometry/basic';
 import { ADA_CITATION, adaRequiredStalls, adaRequiredVanStalls } from '../criteria/ada';
+import { WB67 } from '../criteria/vehicles';
 import { networkOverlapSf } from '../layout/access';
+import { sweptPaths } from './sweptPath';
 import type { Site } from '../site/model';
 import type { Check, CheckStatus, DesignObject, Drive, Driveway, ParkingField, Scenario } from '../site/project';
 import { fmtInt } from '../site/units';
@@ -74,6 +76,20 @@ export function evaluateEngineeringChecks(site: Site, rules: ZoningRuleSet, s: S
   }
   if (driveways.length && driveways.every((d) => drives.some((r) => r.drivewayId === d.id)))
     add('route.all', 'Drive connections', 'pass', `All ${driveways.length} driveway(s) connect to their destination: ${drives.map((r) => `${r.name} ${fmtInt(r.lengthFt)} ft`).join('; ')}.`, { citation: 'EFCG check', objectIds: drives.map((r) => r.id) });
+
+  // WB-67 swept path along truck drives (kinematic off-tracking; concept-level).
+  for (const sp of sweptPaths(objs)) {
+    const ok = sp.overflowSf < 25;
+    add(
+      `sweptPath.${sp.driveId}`,
+      `${WB67.name} swept path, ${sp.driveName}`,
+      ok ? 'pass' : 'warn',
+      ok
+        ? `A ${WB67.name} tractor-trailer tracks inside the pavement in both directions between the street and the truck court (rear axles run up to ${sp.maxOffTrackingFt.toFixed(1)} ft inside the steering path at bends). Turns inside the truck court are not checked.`
+        : `The ${WB67.name} swept path leaves the pavement by up to ${sp.maxOverflowFt.toFixed(1)} ft (${fmtInt(sp.overflowSf)} SF) where the drive bends; off-tracking reaches ${sp.maxOffTrackingFt.toFixed(1)} ft. Widen the drive at the bend, flatten the bend, or move the driveway so the approach is straighter.`,
+      { value: +sp.maxOverflowFt.toFixed(1), limit: 0, units: 'ft', citation: WB67.source, objectIds: [sp.driveId] },
+    );
+  }
 
   add('fire.access', 'Fire apparatus access', 'n/a', 'Not evaluated at concept level. If the fire marshal requires a second approach to the car side, add a gated emergency link with set_access {network: "emergency"} and log it.', { citation: 'Outside concept scope' });
 

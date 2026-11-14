@@ -20,6 +20,13 @@ export function basinStorageCf(topW: number, topL: number, depthFt: number, free
   return (depthFt / 3) * (a1 + a0 + Math.sqrt(a1 * a0));
 }
 
+/** NRCS (SCS) curve-number runoff depth Q (in) for rainfall P (in): Q = (P − 0.2S)² / (P + 0.8S), S = 1000/CN − 10. */
+export function scsRunoffIn(rainfallIn: number, cn: number): number {
+  const s = 1000 / cn - 10;
+  const ia = 0.2 * s;
+  return rainfallIn <= ia ? 0 : (rainfallIn - ia) ** 2 / (rainfallIn + 0.8 * s);
+}
+
 /** Storage depth used for a basin under the active sizing method. */
 export function basinDepthFor(sw: StormwaterCriteria): number {
   return sw.method === 'pctOfSite' ? sw.pctOfSiteDepthFt : sw.basinDepthFt;
@@ -31,7 +38,22 @@ export function requiredBasinAreaSf(sw: StormwaterCriteria, parcelAreaSf: number
     const areaSf = (sw.pctOfSite / 100) * parcelAreaSf;
     return { areaSf, storageCf: null, basis: `${sw.pctOfSite}% of the ${(parcelAreaSf / 43560).toFixed(1)} ac parcel (pctOfSite method)` };
   }
-  const storageCf = (sw.runoffDepthIn / 12) * imperviousSf;
+  let storageCf: number;
+  let basis: string;
+  if (sw.method === 'tr55') {
+    // Runoff-volume increase for the design storm (NRCS curve-number method), over the whole parcel.
+    const pervSf = Math.max(0, parcelAreaSf - imperviousSf);
+    const cnPost = (sw.cnImpervious * imperviousSf + sw.cnPostPervious * pervSf) / parcelAreaSf;
+    const qPre = scsRunoffIn(sw.designStormIn, sw.cnPre);
+    const qPost = scsRunoffIn(sw.designStormIn, cnPost);
+    storageCf = (Math.max(0, qPost - qPre) / 12) * parcelAreaSf;
+    basis =
+      `runoff increase for a ${sw.designStormIn} in 24-hr storm: post CN ${cnPost.toFixed(1)} → ${qPost.toFixed(2)} in, pre CN ${sw.cnPre} → ${qPre.toFixed(2)} in, ` +
+      `× ${(parcelAreaSf / 43560).toFixed(1)} ac = ${Math.round(storageCf).toLocaleString('en-US')} CF, ${sw.basinDepthFt} ft deep (tr55 method; storm depth is a placeholder)`;
+  } else {
+    storageCf = (sw.runoffDepthIn / 12) * imperviousSf;
+    basis = `${sw.runoffDepthIn} in of runoff over ${(imperviousSf / 43560).toFixed(1)} ac of new impervious = ${Math.round(storageCf).toLocaleString('en-US')} CF, ${sw.basinDepthFt} ft deep (runoffDepth method)`;
+  }
   // Smallest 2:1 rectangle whose storage meets the requirement.
   let lo = 100;
   let hi = 1e7;
@@ -41,7 +63,7 @@ export function requiredBasinAreaSf(sw: StormwaterCriteria, parcelAreaSf: number
     if (basinStorageCf(w, 2 * w, sw.basinDepthFt, sw.freeboardFt, sw.sideSlopeHtoV) >= storageCf) hi = mid;
     else lo = mid;
   }
-  return { areaSf: hi, storageCf, basis: `${sw.runoffDepthIn} in of runoff over ${(imperviousSf / 43560).toFixed(1)} ac of new impervious = ${Math.round(storageCf).toLocaleString('en-US')} CF, ${sw.basinDepthFt} ft deep (runoffDepth method)` };
+  return { areaSf: hi, storageCf, basis };
 }
 
 const CELL_FT = 20;

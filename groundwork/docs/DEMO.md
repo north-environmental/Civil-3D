@@ -128,3 +128,6 @@ Try the 24 × 36 **plan sheet PNG** too.
 - "What if the tie-in slopes are 4:1 instead of 3:1?" (`set_grading_criteria`, then `optimize_ffe`)
 - "Add a 60 ft utility easement along the south line and refit." (`add_constraint`, `generate_layout`)
 - "Read § 27-1408 and check my loading berth count." (`get_ordinance_text`, `run_checks`)
+- "Can a WB-67 make it in from Heilmandale Rd?" (`run_checks`: the swept-path check; turn on the **WB-67 swept path** layer)
+- "Size the basin from runoff instead: assume a 3.2 inch design storm." (`set_program {stormwater: {method: "tr55", designStormIn: 3.2}}`; say that the storm depth is the user's number)
+- "Check an accessible route from the ADA stalls to the office door." (`check_accessible_route`)

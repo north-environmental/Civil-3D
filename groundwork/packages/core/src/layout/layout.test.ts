@@ -173,3 +173,39 @@ describe('layout commands', () => {
     expect(() => run(q, services, 'edit_object', { id: 'nope' })).toThrow(/No object "nope"/);
   });
 });
+
+describe('stormwater sizing methods (stretch)', () => {
+  it('SCS curve-number runoff matches the hand calc', async () => {
+    const { scsRunoffIn, requiredBasinAreaSf, basinStorageCf } = await import('./basin');
+    // P = 3 in, CN 98: S = 0.204, Q = (3 − 0.0408)² / (3 + 0.1633) = 2.768 in
+    expect(scsRunoffIn(3, 98)).toBeCloseTo(2.768, 2);
+    // P = 3 in, CN 71: S = 4.085, Ia = 0.817, Q = 2.183² / 6.268 = 0.760 in
+    expect(scsRunoffIn(3, 71)).toBeCloseTo(0.76, 2);
+    expect(scsRunoffIn(0.5, 71)).toBe(0); // below the initial abstraction
+    const sw = { ...(await import('../criteria/stormwater')).STORMWATER_DEFAULTS, method: 'tr55' as const };
+    const parcel = 100 * 43560;
+    const imperv = 20 * 43560;
+    const r = requiredBasinAreaSf(sw, parcel, imperv);
+    const cnPost = (98 * 20 + 74 * 80) / 100;
+    const expected = ((scsRunoffIn(3, cnPost) - scsRunoffIn(3, 71)) / 12) * parcel;
+    expect(r.storageCf).toBeCloseTo(expected, 0);
+    // The footprint returned actually stores the required volume (2:1 rectangle, 6 ft deep, 1 ft freeboard, 3:1).
+    const w = Math.sqrt(r.areaSf / 2);
+    expect(basinStorageCf(w, 2 * w, sw.basinDepthFt, sw.freeboardFt, sw.sideSlopeHtoV)).toBeGreaterThanOrEqual(expected * 0.999);
+    expect(r.basis).toMatch(/placeholder/);
+  });
+
+  it('switching the method through set_program resizes the reservation and shows up in the assumptions', () => {
+    const { p, services } = project();
+    let q = run(p, services, 'generate_layout', { rotationDeg: 0 }).project;
+    const pct = activeScenario(q).results.yield.find((y) => y.key === 'basinArea')!.value;
+    q = run(q, services, 'set_program', { stormwater: { method: 'tr55', designStormIn: 3.2 } }).project;
+    const tr = activeScenario(q).results.yield.find((y) => y.key === 'basinArea')!;
+    expect(tr.value).toBeLessThan(pct);
+    expect(tr.value).toBeGreaterThan(20000);
+    expect(tr.limit).toMatch(/tr55 method/);
+    const sum = run(q, services, 'get_project_summary', { includeAssumptions: true }).result as any;
+    expect(sum.assumptionsChanged.join(' ')).toMatch(/Design storm depth.*3\.2 in/);
+    expect(sum.assumptions.some((a: any) => /pctOfSite method/.test(a.label))).toBe(false);
+  });
+});

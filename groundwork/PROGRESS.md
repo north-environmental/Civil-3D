@@ -5,10 +5,11 @@ _Update after every meaningful step. Newest status at the top._
 ## Summary for the owner (read this first)
 
 **Status: Phases 0–7 are complete and green.** `npm run verify` passes from a fresh clone (typecheck, lint, 57 unit
-tests incl. hand calcs T1–T13, build, 13 browser e2e tests, 5 MCP tests, 14 QA screenshots).
+tests incl. hand calcs T1–T13, build, 13 browser e2e tests, 5 MCP tests, 15 QA screenshots). Four stretch items were
+added after that (see "Stretch" below); verify is green with them: 66 unit tests.
 
 What you have: a working web app (2D plan, 3D view, checks / yield / earthwork / program / zoning / activity panels,
-section tool, exports), a command layer with 32 commands, and an MCP server that exposes all of them to Claude Desktop
+section tool, exports), a command layer with 33 commands, and an MCP server that exposes all of them to Claude Desktop
 / Claude Code. The headline scenario runs end to end through MCP: 410,400 SF cross-dock parallel to Heilmandale Rd,
 110 doors, 126 trailer stalls, 357 car stalls, trucks from Route 72 + Heilmandale Rd, cars only from Orange Ln, networks
 separate, all hard checks pass, balanced at FFE 497.4 ft (148k CY cut / 133k CY fill, net +802 CY), no walls, no offsite
@@ -66,7 +67,7 @@ Open <http://localhost:4310>, click **Load demo site**, then **▶ Demo** for a 
 }
 ```
 
-3. Quit and reopen Claude Desktop; "groundwork" should list about 32 tools. Keep `npm run dev` running.
+3. Quit and reopen Claude Desktop; "groundwork" should list 33 tools. Keep `npm run dev` running.
 4. Type: *"Load 1625 Heilmandale Rd in Groundwork and summarize the site."* Then follow `docs/DEMO.md`.
 
 Claude Code instead: `claude mcp add groundwork -- node <ABS>/packages/mcp/dist/index.js`. Details and troubleshooting:
@@ -86,7 +87,7 @@ Stretch list (after Phase 7)
 
 ## Last verify result
 2026-11-14 — `npm run verify` green on the working tree AND on a fresh clone (`npm ci && npm run build && npm run verify`):
-typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots. `npm run dev` checked separately
+typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots (at the Phase 7 commit). After the stretch items the working tree verifies green with 66 unit tests and 15 screenshots. `npm run dev` checked separately
 (Vite middleware mode serves the app, HMR on, commands run, MCP server connects).
 
 ## Done
@@ -127,10 +128,18 @@ typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots
   - [x] `README.md` (what it is, 5-minute quickstart), `docs/DEMO.md` (scripted client demo with exact prompts and expected results), `docs/ARCHITECTURE.md`, `docs/LIMITATIONS.md`, `docs/MCP_SETUP.md`
   - [x] Fresh-clone test: `git clone` → `npm ci && npm run build && npm run verify` passes
 
+## Stretch (after Phase 7)
+- [x] WB-67 swept path at truck entrances: kinematic check per truck drive + plan layer (`07-swept-path.png`). Vehicle dimensions unverified (from memory); turns inside the court not modeled
+- [x] Runoff-based basin sizing: `stormwater.method = "tr55"` (NRCS curve-number runoff increase). Storm depth is a placeholder to be replaced; rational method not built
+- [x] Accessible-route check (`check_accessible_route`): slopes, ramp classification, 30 in rise. Partial: no "fix", no drawing tool in the UI
+- [x] Second jurisdiction through the ordinance-ingestion flow: proven by a unit test with a fictional rule set (no second real ordinance ingested)
+- [ ] Multi-building layouts (not built)
+- [ ] Residential subdivision mode (not built)
+
 ## Next 3 steps
-1. Stretch: WB-67 swept path check at truck entrances
-2. Stretch: runoff-based basin sizing (TR-55 style)
-3. Owner: run `npm run fetch-site-data` on a networked machine; open an exported DXF in Civil 3D
+1. Owner: run `npm run fetch-site-data` on a networked machine and review `provenance.json`
+2. Owner: open an exported DXF in Civil 3D / AutoCAD; verify the WB-67 dimensions and TR-55 curve numbers against the sources
+3. Reconcile the I-1 rule set with the official eCode360 text (and Ord. 2-2023); resolve the "lot coverage" definition
 
 ## Data source log
 Build environment: cloud sandbox with restricted egress. Every data host below was tried **once** on 2026-11-13 and
@@ -155,6 +164,7 @@ Run `npm run fetch-site-data` on a machine with internet access to replace it wi
 |---|---|---|---|
 | 00-shell-empty.png | 2026-11-13 | None blocking. Shell reads as a product: top bar, layers, tabs, status bar, command line, empty state. | n/a |
 | 01-site-plan-asbuilt.png | 2026-11-13 | Minor (1 ft) contours too faint to read at site zoom. Labels do not overlap; roads, districts, wetland, as-built reference, scale bar, north arrow, coordinates and elevation all read correctly. | Yes: raised minor-contour contrast |
+| 07-swept-path.png | 2026-11-14 | None: the 8.5 ft envelope tracks inside the 32 ft truck drive and extends into the street approach; layer toggle and check entry present. | n/a |
 | 06-export-plan-sheet.png, 06-light-theme-asbuilt-activity.png, 06-compare.png, 06-scenario-b-checks.png | 2026-11-13 | Basin label unreadable on the light sheet (pale blue text with a light halo); SYNTHETIC badge washed out and the white parcel swatch invisible in the light theme. Sheet title block, yield, compliance and earthwork tables read correctly. | Yes: theme-aware basin label color; light-theme badge and swatch styles |
 | 05-grading-cutfill.png, 05-grading-section.png, 05-grading-3d.png, 05-grading-contours-earthwork.png | 2026-11-13 | 3D camera cropped the site and the wetland was missing in 3D; section caption clipped at the panel bottom; tab focus ring looked like a selection. Cut/fill legend, proposed contours, FFE label, section profile (pad at FFE, courts 4 ft below, 3:1 tie-ins) all read correctly. Earthwork sanity: first pass had the 10 ac basin 7 ft deep = 195k CY of cut dominating everything (not credible) and the solver parked the building where a 145 ft truck drive forced the floor 7 ft above grade (76k CY import). | Yes: wider 3D framing + wetland color; chart height; focus style; basin depth 3 ft for the area-based method with berm at median ground; solver now scores drive-profile feasibility |
 | 03-layout-plan-checks.png, 03-layout-yield.png, demo-headline-asbuilt.png | 2026-11-13 | Building label was unreadable (dark halo on a light fill); a basin corner crossed the lot line (raster cell overhang); solver pinned the building against the Route 72 setback leaving a 60 ft truck throat; yield label column wrapped. | Yes: light halo on the building label; basin free area eroded 15 ft; 300 ft preferred truck approach in the solver score; wider label column |
