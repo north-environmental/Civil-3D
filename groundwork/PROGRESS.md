@@ -133,8 +133,8 @@ typecheck, lint, 57 unit tests, build, 13 e2e tests, 5 MCP tests, 14 screenshots
 - [x] Runoff-based basin sizing: `stormwater.method = "tr55"` (NRCS curve-number runoff increase). Storm depth is a placeholder to be replaced; rational method not built
 - [x] Accessible-route check (`check_accessible_route`): slopes, ramp classification, 30 in rise. Partial: no "fix", no drawing tool in the UI
 - [x] Second jurisdiction through the ordinance-ingestion flow: proven by a unit test with a fictional rule set (no second real ordinance ingested)
-- [ ] Multi-building layouts (not built)
-- [ ] Residential subdivision mode (not built)
+- [ ] Multi-building layouts: not built. The layout, checks and grading engines assume one building per scenario; doing this properly is a refactor of `layout/generate.ts`, the solver and `grading/objects.ts`, and I chose not to risk a green build for it. Recommended as the next piece of work
+- [ ] Residential subdivision mode: not built. The reference data has no residential district rules (lot sizes, yards, street standards), and inventing them is off limits; it needs those inputs first
 
 ## Next 3 steps
 1. Owner: run `npm run fetch-site-data` on a networked machine and review `provenance.json`
