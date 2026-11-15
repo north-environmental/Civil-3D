@@ -1,0 +1,15 @@
+# Raw downloads (LiDAR / elevation rasters, GIS responses, imagery): too big for GitHub
+data/raw/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Viewer test output (the built viewer itself is committed)
+viewer/dist/test-output/
+
+# Editor / OS clutter
+.vscode/
+.DS_Store
+Thumbs.db
