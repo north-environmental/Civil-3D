@@ -1,0 +1,4 @@
+# Python add-ons for the packager (installed into .venv by setup.cmd)
+numpy      # grid math for the terrain
+shapely    # property-line, buffer and setback shapes
+tifffile   # reads the elevation (GeoTIFF) file from USGS

@@ -1,0 +1,44 @@
+{
+  "_readme": "Hand-entered zoning values for North Lebanon Township, PA. Edit this file to add districts or correct values. Never guess a value: leave it null and add a note. Set 'verified' to true only after checking against the official adopted code.",
+  "jurisdiction": "North Lebanon Township, Lebanon County, PA",
+  "municipality": "North Lebanon Township",
+  "county": "Lebanon",
+  "codeName": "North Lebanon Township Code, Chapter 27 Zoning",
+  "officialUrl": "https://ecode360.com/NO1608",
+  "enteredFrom": "Zoneomics reproduction of the code, extract taken 2026-11-13 (groundwork/docs/reference/zoning-north-lebanon-I1.md)",
+  "verified": false,
+  "districtMap": {
+    "file": "north-lebanon-township.districts-2023.json",
+    "aliases": { "I": "I-1" },
+    "aliasNote": "The 2023 zoning map labels the district 'I'; the ordinance calls it I-1."
+  },
+  "districts": {
+    "I-1": {
+      "districtName": "Industrial",
+      "values": {
+        "frontSetbackFt": { "value": 100, "section": "27-1003", "note": "Measured from the road right-of-way. 150 ft when across the street from a residential district." },
+        "sideSetbackFt": { "value": 20, "section": "27-1003" },
+        "rearSetbackFt": { "value": 30, "section": "27-1003" },
+        "residentialSeparationFt": { "value": 150, "section": "27-1003", "note": "No building within 150 ft of a residentially zoned district." },
+        "maxHeightFt": { "value": 75, "section": "27-1003", "note": "Chimneys, towers, tanks and mechanical appurtenances up to 125 ft." },
+        "maxLotCoveragePct": { "value": 50, "section": "27-1003", "note": "Definition of 'lot coverage' is in 27-102 (not checked)." },
+        "minLotAreaAc": { "value": 2, "section": "27-1003" },
+        "minLotWidthFt": { "value": 200, "section": "27-1003" },
+        "minLandscapedPct": { "value": 15, "section": "27-1304" },
+        "parkingSetbackFromRowFt": { "value": 25, "section": "27-1404" },
+        "parkingSetbackSideRearFt": { "value": 10, "section": "27-1404" },
+        "parkingSetbackFromResidentialFt": { "value": 100, "section": "27-1404" },
+        "stallWidthFt": { "value": 10, "section": "27-1402" },
+        "stallLengthFt": { "value": 20, "section": "27-1402" },
+        "aisleWidthFt": { "value": 20, "section": "27-1407", "note": "Where stalls face each other." },
+        "maxParkingGradePct": { "value": 4, "section": "27-1410" }
+      },
+      "parkingRatios": [
+        { "use": "Service and storage establishments", "rule": "1 space per 2 employees on the combined two largest successive shifts", "section": "27-1405 S" },
+        { "use": "Manufacturing / other industrial uses", "rule": "1 space per employee on the largest shift", "section": "27-1405 V" },
+        { "use": "Executive / sales office", "rule": "1 space per 200 SF of office floor area (in addition)", "section": "27-1405 W" },
+        { "use": "Unlisted use (e.g. warehouse)", "rule": "Zoning Administrator applies the most similar listed use", "section": "27-1405 X" }
+      ]
+    }
+  }
+}

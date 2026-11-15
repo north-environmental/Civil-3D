@@ -128,7 +128,7 @@ The ground is a regular grid of elevations, made from the LiDAR-derived bare-ear
 
 | Field | Example | Meaning |
 |---|---|---|
-| `cellSizeFt` | `5` | Grid spacing. The packager picks the finest of 2.5, 5 or 10 ft that keeps the file under 15 MB. |
+| `cellSizeFt` | `3` | Grid spacing. The packager picks the finest of 3, 5 or 10 ft that keeps the file under the size limit. 3 ft is about the native spacing of 1 m LiDAR; finer would only interpolate. |
 | `cols`, `rows` | `810`, `640` | Grid size. `cols` runs west to east, `rows` south to north. |
 | `x0Ft`, `y0Ft` | `2322620`, `377430` | The **south-west corner** of the grid (the outer corner of the first cell, not its centre). |
 | `minElevFt`, `maxElevFt` | `471.7`, `603.3` | Lowest and highest elevation on the grid. |
@@ -139,6 +139,8 @@ The ground is a regular grid of elevations, made from the LiDAR-derived bare-ear
 | `source` | `"usgs-3dep"` | Source `id`. |
 | `nativeResolution` | `"1 m"` | Resolution of the original data. |
 | `preDevelopment` | `true` / `false` / `null` | Whether the ground appears to be before current construction. `null` if unknown. |
+| `parcelElevFt` | `{"min": 507.4, "max": 575.0}` | Optional. Lowest and highest elevation inside the parcel. |
+| `lidarSurveys` | list | Optional. Every LiDAR survey covering the site, from the USGS 3DEP index: `{project, collectStart, collectEnd, qualityLevel, demResolutionM, demPublished}`. If there is more than one, USGS's combined surface does not say which it used at a given spot. |
 
 **How the grid is stored**
 - Cell `(col, row)` has its centre at:

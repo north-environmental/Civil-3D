@@ -1,0 +1,77 @@
+{
+  "siteId": "1625-heilmandale-rd",
+  "createdAt": "2026-11-15T16:21:51Z",
+  "address": "1625 Heilmandale Rd, North Lebanon Township, PA",
+  "layers": [
+    {
+      "layer": "address",
+      "source": "US Census geocoder",
+      "status": "found",
+      "detail": "1625 Heilmandale Rd, Lebanon, PA 17046",
+      "seconds": null
+    },
+    {
+      "layer": "parcel",
+      "source": "Lebanon County GIS tax parcels",
+      "status": "found",
+      "detail": "parcel 27-2325148-379540-0000, matched by address",
+      "seconds": 1.0
+    },
+    {
+      "layer": "roads",
+      "source": "Lebanon County GIS road centerlines",
+      "status": "found",
+      "detail": "7 road pieces",
+      "seconds": 0.2
+    },
+    {
+      "layer": "buildings",
+      "source": "OpenStreetMap (Overpass)",
+      "status": "failed",
+      "detail": "the server answered HTTP 502 (Bad Gateway)",
+      "seconds": null
+    },
+    {
+      "layer": "streams",
+      "source": "USGS National Hydrography Dataset (NHD) flowlines, high resolution",
+      "status": "found",
+      "detail": "1 shapes",
+      "seconds": 0.5
+    },
+    {
+      "layer": "wetlands",
+      "source": "USFWS National Wetlands Inventory",
+      "status": "found",
+      "detail": "2 shapes",
+      "seconds": 1.0
+    },
+    {
+      "layer": "floodplain",
+      "source": "floodplain (FEMA)",
+      "status": "failed",
+      "detail": "the server answered HTTP 504 (Gateway Time-out)",
+      "seconds": null
+    },
+    {
+      "layer": "terrain-index",
+      "source": "USGS 3DEP source index",
+      "status": "found",
+      "detail": "PA_South_Central_2017_D17 2017-11-21..2017-12-21; PA_17County_D24 2024-04-23..2024-12-17",
+      "seconds": 0.6
+    },
+    {
+      "layer": "terrain",
+      "source": "USGS 3DEP elevation service",
+      "status": "found",
+      "detail": "1458 x 1006 at 3 ft",
+      "seconds": 0.3
+    },
+    {
+      "layer": "imagery",
+      "source": "PEMA orthoimagery 2018-2020 (via PASDA)",
+      "status": "found",
+      "detail": "3975 x 2739 px at 1.1 ft/px, 2.5 MB",
+      "seconds": 10.8
+    }
+  ]
+}
