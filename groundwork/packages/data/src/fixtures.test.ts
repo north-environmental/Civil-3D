@@ -6,12 +6,11 @@ import { createHostServices, loadSiteFixture, resolveSiteId } from './fixtures';
 
 const dataDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../data/sites');
 
-describe('heilmandale fixture', () => {
-  const site = loadSiteFixture(dataDir, 'heilmandale');
+describe('synthetic test fixture', () => {
+  const site = loadSiteFixture(dataDir, 'synthetic');
 
-  it('resolves by address fragments', () => {
-    expect(resolveSiteId(dataDir, { address: '1625 Heilmandale Rd' })).toBe('heilmandale');
-    expect(resolveSiteId(dataDir, { address: '1625 heilmandale road, lebanon pa' })).toBe('heilmandale');
+  it('resolves by site id only (it is not a real address)', () => {
+    expect(resolveSiteId(dataDir, { siteId: 'synthetic' })).toBe('synthetic');
     expect(resolveSiteId(dataDir, { address: '10 Nowhere St' })).toBeNull();
   });
 
@@ -50,9 +49,9 @@ describe('heilmandale fixture', () => {
   it('load_site + get_site_context through the command layer', () => {
     const services = createHostServices(dataDir);
     let p = newProject();
-    const r = executeCommand(p, 'load_site', { address: '1625 Heilmandale Rd' }, { services, source: 'mcp' });
+    const r = executeCommand(p, 'load_site', { siteId: 'synthetic' }, { services, source: 'mcp' });
     p = r.project;
-    expect(p.site?.id).toBe('heilmandale');
+    expect(p.site?.id).toBe('synthetic');
     expect(p.rules?.district).toBe('I-1');
     expect(r.result.summary).toMatch(/SYNTHETIC/);
     const ctx = executeCommand(p, 'get_site_context', {}, { services }).result as any;

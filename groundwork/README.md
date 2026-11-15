@@ -9,17 +9,20 @@ test fit (building, truck courts, trailer and car parking, separated truck/car c
 grades it (pad, dock-height courts, parking planes, drives, basin, 3:1 tie-ins), computes cut/fill and balances the
 earthwork by optimizing the finished floor elevation.
 
-Every action is a **command**. A local **MCP server** exposes the same commands to Claude Desktop / Claude Code, so
-you can sit beside the browser and say:
+Every action is a **command**. Type what you want in the **Chat** panel on the right of the app, or connect Claude
+Desktop / Claude Code through the local **MCP server**, and say:
 
-> Fit a 410,000 SF cross-dock with the long side parallel to Heilmandale Rd. Trucks come in from Route 72 and
-> Heilmandale Rd, employee cars only from Orange Lane, and don't connect truck and car circulation. Then grade it and
-> balance the earthwork.
+> Fit a 410,000 SF cross-dock with the long side parallel to Heilmandale Rd. Trucks come in from Heilmandale Rd,
+> employee cars only from Orange Lane, and don't connect truck and car circulation.
 
 Claude decides and explains; the deterministic engine does the geometry and the math. The app never calls the
-Anthropic API and needs no API key.
+Anthropic API and needs no API key: the chat panel runs Claude through Claude Code on your computer when it is
+installed, and falls back to a simple built-in parser when it is not (see [`docs/CHAT.md`](docs/CHAT.md)).
 
-![Plan sheet](docs/screens/06-export-plan-sheet.png)
+The demo site is real: the county tax parcel, an aerial photo registered to it, USGS LiDAR terrain, NWI wetlands and
+zoning districts digitized from the township map, all cached in the repository so the app runs offline.
+
+![Plan sheet](docs/screens/06-export-plan-sheet.jpg)
 
 ## 5-minute quickstart
 
@@ -33,18 +36,23 @@ npm ci
 npx playwright install chromium
 ```
 
-(Chromium is used for `render_view`, the PNG sheet export and the end-to-end tests. Skip it and everything else still works.)
+(Chromium is used for `render_view`, the 24 × 36 sheet export and the end-to-end tests. Skip it and everything else
+still works, including **Export ▾ → Plan image PNG**, which is drawn in your browser.)
 
 ```bash
 npm run dev
 ```
 
-Open <http://localhost:4310>. Click **Load demo site**, then **▶ Demo** to watch the headline scenario replay, or
-drive it yourself:
+Open <http://localhost:4310>. Click **Load demo site**, then either type in the **Chat** tab ("Fit a 410,000 SF
+cross-dock parallel to Heilmandale Rd with 350 parking spaces, trucks from Heilmandale Rd and cars only from Orange
+Ln"), click **▶ Demo** to watch the headline scenario replay, or drive it yourself:
+
+- **Layers** (left): aerial photo before construction, the latest aerial (the facility as built), property boundary,
+  neighbouring lots, zoning districts, wetlands, LiDAR contours.
 
 - **Program** tab → *Generate layout*; drag the building, its handles, or a driveway.
 - **Earthwork** tab → *Optimize FFE (balance)*; press `C` for the cut/fill map, `S` to cut a section, `3` for 3D.
-- **Export ▾** for DXF, GeoJSON, XLSX and a 24 × 36 plan sheet. Press `?` for shortcuts.
+- **Export ▾** for a PNG of the plan (saved to your Downloads folder), DXF, GeoJSON, XLSX and a 24 × 36 plan sheet. Press `?` for shortcuts.
 - The command line at the bottom runs any command, e.g. `generate_layout alignToRoad="Route 72"`.
 - Layer **WB-67 swept path** shows the tractor-trailer envelope along the truck drives.
 
@@ -65,23 +73,34 @@ Then follow the scripted demo in [`docs/DEMO.md`](docs/DEMO.md).
 **1625 Heilmandale Rd, North Lebanon Township, Lebanon County, PA** (I-1 Industrial): the ~110 ac tract where a
 411,840 SF distribution center was built in 2020–2021.
 
-> **The committed fixture is SYNTHETIC.** This repository was built in a sandbox whose network policy blocked every
-> data host (PASDA, USGS, OSM, FEMA, USFWS, eCode360). Per the fallback chain in the spec, `data/sites/heilmandale/`
-> holds a generated ~110 ac parcel, guessed road layout, district polygons from the 2020 Planning Commission minutes,
-> a ~5 ac wetland and a generated terrain with ~45 ft of relief. The UI shows a persistent **SYNTHETIC** badge and every
-> export says so. Zoning values and section numbers are real extracts from `docs/reference/zoning-north-lebanon-I1.md`.
+The data in `data/sites/heilmandale/` is real public GIS data, fetched once and cached so the app runs offline. Click
+the green badge at the top of the plan (or "where the site data comes from" under the chat box) for the source of
+every layer.
 
-To replace it with live data on a machine with internet access:
+| Layer | Source | Notes |
+|---|---|---|
+| Parcel | Lebanon County GIS tax parcels | 110.35 ac, matched by address. A 2017 snapshot: the tract before development. Tax-map linework, not a survey. Owner fields are not downloaded. |
+| Roads | Lebanon County GIS road centerlines | Right-of-way widths are class defaults (assumed). OpenStreetMap is tried first; it was unreachable when the fixture was built. |
+| Terrain | USGS 3DEP LiDAR elevation, 5 ft cells | Reviewed as pre-construction ground. |
+| Wetlands | USFWS National Wetlands Inventory | One 4.8 ac wetland on the south side. Planning-level mapping, not a delineation. |
+| Aerials | PEMA 2018–2020 orthoimagery (PASDA) and USGS NAIP | Exported in the site's coordinate system, so they line up with the parcel. The first shows farm fields; the second shows the facility as built. |
+| Zoning districts | North Lebanon Township Zoning Map (2023), digitized | Approximate (about ±10 ft). See `scripts/digitize-zoning-map.py`. |
+| Neighbouring lots | Lebanon County GIS tax parcels | Outlines only, for context. |
+| Floodplain | FEMA NFHL | **Not loaded**: the FEMA service timed out. Check the FEMA map separately. |
+| Zoning rules | `docs/reference/zoning-north-lebanon-I1.md` | Extracts of Chapter 27, not the official eCode360 text. |
+
+Along Heilmandale Rd the lot is deeded to the road centerline, so front yards and parking setbacks are measured from
+the right-of-way line (assumed 30 ft inside the lot line), not from the lot line itself.
+
+To refresh the data on a machine with internet access:
 
 ```bash
 npm run fetch-site-data
 ```
 
-This tries each source once (census geocoder → PASDA parcels → OpenStreetMap roads and as-built footprint → USGS 3DEP
-terrain → NWI wetlands → FEMA flood zones → USGS imagery tiles), writes `data/sites/heilmandale/` with
-`provenance.json`, and prints a per-layer report. It was **not** exercised against the live services (see
-[`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)); if the parcel or the DEM cannot be fetched it leaves the fixture untouched.
-`npm run make-synthetic` regenerates the synthetic fixture.
+Each source is tried once and the per-layer result is printed and written to `provenance.json`. If the parcel or the
+terrain cannot be fetched, the existing fixture is left untouched. `-- --no-imagery` keeps the cached aerials.
+`data/sites/synthetic/` holds a generated test site used only by the regression tests (`npm run make-synthetic`).
 
 ## Scripts
 
@@ -95,7 +114,7 @@ terrain → NWI wetlands → FEMA flood zones → USGS imagery tiles), writes `d
 | `npm run test:e2e` / `npm run test:mcp` | Browser tests / MCP client test (they build first) |
 | `npm run demo` | Runs the headline scenario through commands; writes `docs/demo-summary.md` + `docs/screens/demo-*.png` |
 | `npm run screens` | Re-captures the QA screenshots (needs `npm run build`) |
-| `npm run fetch-site-data` / `npm run make-synthetic` | Live data fetch / synthetic fixture |
+| `npm run fetch-site-data` / `npm run make-synthetic` | Refresh the real site data / regenerate the synthetic test site |
 
 Server flags: `npm run dev -- --port 4400 --fresh` (`--fresh` ignores the saved project in `projects/`).
 

@@ -86,6 +86,13 @@ export function CenterView() {
             </span>
           </div>
         )}
+        {site && !site.synthetic && view === '2d' && (
+          <div className="badge-synth">
+            <button className="tag data" onClick={() => app.set({ dataOpen: true })} data-testid="data-badge" title="Click for the source of every layer">
+              Real site data · county parcel · USGS LiDAR · NWI wetlands · township zoning map ⓘ
+            </button>
+          </div>
+        )}
         {!site && (
           <div className="empty-state">
             <div className="empty-card" data-testid="empty-state">
@@ -100,7 +107,7 @@ export function CenterView() {
                 Load demo site · 1625 Heilmandale Rd
               </button>
               {!connected && <p style={{ marginTop: 10 }}>Waiting for the Groundwork server…</p>}
-              <p style={{ margin: '12px 0 0' }}>Or ask Claude (via the Groundwork MCP server): “Load 1625 Heilmandale Rd and summarize the site.”</p>
+              <p style={{ margin: '12px 0 0' }}>Or type in the Chat panel on the right: “Load 1625 Heilmandale Rd”, then describe what to build.</p>
             </div>
           </div>
         )}

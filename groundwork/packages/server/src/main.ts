@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHostServices, siteAssetsDir } from '@groundwork/data';
 import { createApp } from './app';
+import { ChatManager } from './chat';
 import { createEffectRunner } from './effects';
 import { ProjectStore } from './store';
 
@@ -50,9 +51,11 @@ export async function startServer(argv: string[] = process.argv.slice(2)) {
     viteMiddleware = viteServer.middlewares;
   }
 
+  const chat = new ChatManager({ store, effects, root, port: () => port, engine: (arg('--chat') as 'auto' | 'claude' | 'builtin' | undefined) ?? undefined });
   const { server } = createApp({
     store,
     effects,
+    chat,
     exportsDir,
     webDist: path.join(root, 'packages', 'web', 'dist'),
     viteMiddleware,
@@ -71,6 +74,7 @@ export async function startServer(argv: string[] = process.argv.slice(2)) {
   console.log(`Groundwork ${dev ? '(dev)' : ''} listening on http://localhost:${port}`);
 
   const close = async () => {
+    chat.stop();
     store.save();
     await effects.close();
     if (viteServer) await viteServer.close();

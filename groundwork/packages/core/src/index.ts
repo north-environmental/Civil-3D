@@ -26,3 +26,4 @@ export * from './grading/scenario';
 export * from './export/dxf';
 export * from './export/build';
 export * from './checks/sweptPath';
+export * from './chat/interpret';

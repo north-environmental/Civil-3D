@@ -29,8 +29,9 @@ export const HEADLINE_STEPS: DemoStep[] = [
     command: 'set_program',
     input: { buildingSf: 410000, buildingType: 'crossDock', clearHeightFt: 40, dockDoors: 'max', trailerStalls: 'max', employeesLargestShift: 300, employeesTwoLargestShifts: 520 },
   },
-  { step: 5, label: 'Truck access from Route 72', command: 'set_access', input: { network: 'truck', road: 'Route 72', position: 'auto' } },
-  { step: 5, label: 'Truck access from Heilmandale Rd', command: 'set_access', input: { network: 'truck', road: 'Heilmandale Rd', position: 'auto' } },
+  // The lot touches Route 72 for only ~150 ft beside the Orange Ln intersection, too short for a driveway
+  // 150 ft clear of it (§ 27-1407), so trucks use Heilmandale Rd (SR 4006), which meets Route 72 at the corner.
+  { step: 5, label: 'Truck access from Heilmandale Rd', command: 'set_access', input: { network: 'truck', road: 'Heilmandale Rd', position: 'auto', exclusive: true } },
   { step: 5, label: 'Employee cars only from Orange Ln', command: 'set_access', input: { network: 'car', road: 'Orange Ln', position: 'auto', exclusive: true } },
   { step: 4, label: 'Fit the building with its long axis parallel to Heilmandale Rd', command: 'generate_layout', input: { alignToRoad: 'Heilmandale Rd', docksAwayFromResidential: true } },
   { step: 6, label: 'Run checks and report anything that needs attention', command: 'run_checks', input: { statusFilter: ['fail', 'warn'] } },
@@ -56,7 +57,7 @@ export const HEADLINE_STEPS_EXPORT: DemoStep[] = [
     label: 'Compare the test fit with the as-built reference',
     command: 'log_note',
     input: {
-      note: 'As-built comparison (reference layer on): the built facility is a 411,840 SF building with about 10 ac of basins on the west, south and east sides, trucks from Route 72 and Heilmandale Rd and an employee drive off Orange Ln. The test fit matches that program within 0.4% of building area, uses the same three access points and reserves a similar stormwater area; footprint proportions and basin locations differ. (The as-built outline in this fixture is illustrative.)',
+      note: 'As-built comparison (turn on the "Aerial, latest" layer): public records give a 411,840 SF distribution center with about 10 ac of basins, trucks reaching the site from Route 72 by way of Heilmandale Rd and an employee drive off Orange Ln. The latest aerial shows a long, narrow building set parallel to the Heilmandale Rd frontage with trailer courts on both long sides and employee parking at the southeast end. The test fit uses the same program and access roads; its footprint is squarer than the built one, so positions differ.',
     },
   },
   { step: 10, label: 'Export DXF + XLSX', command: 'export', input: { formats: ['dxf', 'xlsx'] } },

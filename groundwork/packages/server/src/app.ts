@@ -6,12 +6,14 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { CommandError, ENGINE_COMMANDS, type CommandSource, listCommands } from '@groundwork/core';
+import type { ChatManager } from './chat';
 import { type EffectRunner } from './effects';
 import { ProjectStore, toClientProject } from './store';
 
 export type AppOptions = {
   store: ProjectStore;
   effects: EffectRunner;
+  chat: ChatManager;
   exportsDir: string;
   webDist: string | null;
   /** Vite dev middleware (dev mode only). */
@@ -64,6 +66,23 @@ export function createApp(opts: AppOptions): { app: express.Express; server: htt
     }
   });
 
+  // Chat panel: plain-text requests, answered by Claude (through Claude Code) or the built-in parser.
+  app.get('/api/chat', (_req, res) => {
+    res.json(opts.chat.state());
+  });
+  app.post('/api/chat', async (req, res) => {
+    const r = await opts.chat.send(String(req.body?.message ?? ''));
+    res.status(r.ok ? 200 : 400).json(r);
+  });
+  app.post('/api/chat/stop', (_req, res) => {
+    opts.chat.stop();
+    res.json({ ok: true });
+  });
+  app.post('/api/chat/reset', (_req, res) => {
+    opts.chat.reset();
+    res.json({ ok: true });
+  });
+
   // Existing-ground DEM as raw little-endian Float32 (row-major, j = south→north). Spec in headers.
   app.get('/api/site/dem', (_req, res) => {
     const site = store.project.site;
@@ -113,6 +132,13 @@ export function createApp(opts: AppOptions): { app: express.Express; server: htt
   });
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'state', revision: store.project.revision, changedIds: [], entry: null, project: toClientProject(store.project) }));
+  });
+  wss.on('connection', (ws) => {
+    ws.send(JSON.stringify({ type: 'chat', chat: opts.chat.state() }));
+  });
+  opts.chat.subscribe((chat) => {
+    const msg = JSON.stringify({ type: 'chat', chat });
+    for (const client of wss.clients) if (client.readyState === 1) client.send(msg);
   });
   store.subscribe((e) => {
     const msg = JSON.stringify({ type: 'state', revision: e.revision, changedIds: e.changedIds, designLogEntry: e.entry, command: e.command, project: toClientProject(store.project) });

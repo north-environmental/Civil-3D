@@ -38,7 +38,7 @@ describe('phase 6: full demo run and exports', () => {
     expect(Math.abs(a.net)).toBeLessThanOrEqual(0.02 * a.moved);
     // Scenario B (rotated 90°) fails exactly one ordinance check, and says why.
     expect(state.scenarios[1].fails).toEqual(['z.landscape.westWallScreen']);
-    expect(state.log).toBeGreaterThanOrEqual(15);
+    expect(state.log).toBeGreaterThanOrEqual(14);
     // The log panel shows the narrative; the as-built reference is on at the end.
     await page.click('[data-testid="tab-activity"]');
     const log = await page.locator('[data-testid="activity-log"]').innerText();

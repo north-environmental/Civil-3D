@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { app, runCommand, setTheme, toast, useApp } from '../lib/app';
 import { startDemo, stopDemo } from '../lib/demo';
+import { exportPlanPng } from '../plan/exportPng';
 
 function Logo() {
   return (
@@ -23,19 +24,41 @@ export function TopBar() {
 
   const doExport = async (formats: string[]) => {
     setMenu(false);
-    const r = await runCommand('export', { formats }, { busy: 'Exporting…', images: false });
-    if (r.ok) {
-      const files = (r.result.files as { url: string; kind: string }[]) ?? [];
-      for (const f of files) {
-        const a = document.createElement('a');
-        a.href = f.url;
-        a.download = f.url.split('/').pop() ?? 'export';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    const saved: string[] = [];
+    const problems: string[] = [];
+    app.set({ busy: 'Exporting…' });
+    try {
+      // The plan image is drawn in the browser, so it needs no server-side renderer.
+      if (formats.includes('png')) {
+        try {
+          saved.push(await exportPlanPng());
+        } catch (err) {
+          problems.push(`PNG: ${(err as Error).message}`);
+        }
       }
-      if (!files.length) toast(String(r.result.summary));
+      const serverFormats = formats.filter((f) => f !== 'png').map((f) => (f === 'sheet' ? 'png' : f));
+      if (serverFormats.length) {
+        const r = await runCommand('export', { formats: serverFormats }, { images: false, quiet: true });
+        if (r.ok) {
+          const files = (r.result.files as { url: string; kind: string }[]) ?? [];
+          for (const f of files) {
+            const name = f.url.split('/').pop() ?? 'export';
+            const a = document.createElement('a');
+            a.href = f.url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            saved.push(name);
+          }
+          if (r.result.imageError) problems.push('24 × 36 sheet: the server-side renderer is not installed. Run "npx playwright install chromium" once in the groundwork folder, or use "Plan image PNG".');
+        } else problems.push(r.error);
+      }
+    } finally {
+      app.set({ busy: null });
     }
+    const where = 'Look in your browser’s Downloads folder.';
+    toast([saved.length ? `Saved ${saved.join(', ')}. ${where}` : '', ...problems].filter(Boolean).join(' '));
   };
 
   return (
@@ -105,13 +128,16 @@ export function TopBar() {
             <button onClick={() => doExport(['geojson'])}>
               GeoJSON <span className="hint">WGS84</span>
             </button>
-            <button onClick={() => doExport(['png'])}>
-              Plan sheet PNG <span className="hint">24 × 36</span>
+            <button onClick={() => doExport(['png'])} data-testid="export-png">
+              Plan image PNG <span className="hint">what you see, with the aerial</span>
+            </button>
+            <button onClick={() => doExport(['sheet'])}>
+              Plan sheet PNG <span className="hint">24 × 36, needs Chromium</span>
             </button>
             <button onClick={() => doExport(['xlsx'])}>
               XLSX summary <span className="hint">yield · compliance · earthwork</span>
             </button>
-            <button onClick={() => doExport(['dxf', 'geojson', 'png', 'xlsx'])}>All formats</button>
+            <button onClick={() => doExport(['png', 'dxf', 'geojson', 'xlsx'])}>All of the above except the sheet</button>
           </div>
         )}
       </div>

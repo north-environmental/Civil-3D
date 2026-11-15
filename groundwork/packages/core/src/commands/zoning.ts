@@ -41,8 +41,18 @@ defineCommand({
     const list = rules.rules.filter((r) => !input.category || r.category === input.category);
     const flags = rules.rules.flatMap((r) => (r.interpretationFlags ?? []).map((f) => `${r.citation.section}: ${f}`));
     const fr = frontages(site.edges).map((f) => {
-      const sb = env.edgeSetbacks[f.edgeIndexes[0]];
-      return { road: f.roadName, buildingSetbackFt: sb.buildingFt, parkingSetbackFt: sb.parkingFt, acrossStreetFromResidential: f.acrossStreetFromResidential };
+      // The yard can differ along one frontage (150 ft only where a residential district is across the street).
+      const sbs = f.edgeIndexes.map((i) => env.edgeSetbacks[i]);
+      const lo = Math.min(...sbs.map((x) => x.buildingFt));
+      const hi = Math.max(...sbs.map((x) => x.buildingFt));
+      return {
+        road: f.roadName,
+        buildingSetbackFt: hi,
+        buildingSetbackMinFt: lo,
+        parkingSetbackFt: Math.max(...sbs.map((x) => x.parkingFt)),
+        rowInsetFt: Math.round(Math.max(...sbs.map((x) => x.rowInsetFt))),
+        acrossStreetFromResidential: f.acrossStreetFromResidential,
+      };
     });
     const unconfirmed = rules.rules.filter((r) => !r.confirmed).length;
     return {
@@ -50,7 +60,12 @@ defineCommand({
         summary:
           `${rules.districtName} (${rules.jurisdiction}): ${rules.rules.length} rules, ${unconfirmed ? `${unconfirmed} proposed/unconfirmed` : 'all confirmed'}, ${flags.length} interpretation flags. ` +
           `Building envelope ${fmtAc(env.areas.buildingSf, 1)}, parking envelope ${fmtAc(env.areas.parkingSf, 1)}, loading envelope ${fmtAc(env.areas.loadingSf, 1)}. ` +
-          fr.map((f) => `${f.road}: building ${f.buildingSetbackFt} ft${f.acrossStreetFromResidential ? ' (across from residential)' : ''}, parking ${f.parkingSetbackFt} ft`).join('; ') +
+          fr
+            .map((f) => {
+              const yard = f.buildingSetbackMinFt < f.buildingSetbackFt ? `${f.buildingSetbackMinFt}–${f.buildingSetbackFt} ft (the larger where a residential district is across the street)` : `${f.buildingSetbackFt} ft${f.acrossStreetFromResidential ? ' (across from residential)' : ''}`;
+              return `${f.road}: building ${yard}, parking ${f.parkingSetbackFt} ft${f.rowInsetFt > 0 ? `, measured from the right-of-way line assumed ${f.rowInsetFt} ft inside the lot line` : ''}`;
+            })
+            .join('; ') +
           `. Residential district: buildings ${env.residentialBuildingSepFt} ft, parking ${env.residentialParkingSepFt} ft.`,
         district: rules.district,
         jurisdiction: rules.jurisdiction,

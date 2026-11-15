@@ -16,6 +16,12 @@ export type EdgeSetbacks = {
   parkingRuleKey: string;
   /** Depth of the required front yard on this edge (0 for non-front edges). */
   frontYardFt: number;
+  /** Street ROW line inside the lot line on this edge, ft (0 unless the lot runs into the street). */
+  rowInsetFt: number;
+  /** Setback lines measured from the LOT line: rule depth + rowInsetFt. */
+  buildingLineFt: number;
+  parkingLineFt: number;
+  frontYardLineFt: number;
 };
 
 export type Envelopes = {
@@ -63,7 +69,19 @@ export function edgeSetbacks(edges: ParcelEdge[], rules: ZoningRuleSet): EdgeSet
       parkingFt = pRes;
       parkingRuleKey = 'setback.parking.fromResidential';
     }
-    return { edgeIndex: e.index, buildingFt, buildingRuleKey, parkingFt, parkingRuleKey, frontYardFt };
+    const rowInsetFt = e.edgeClass === 'front' ? (e.rowInsetFt ?? 0) : 0;
+    return {
+      edgeIndex: e.index,
+      buildingFt,
+      buildingRuleKey,
+      parkingFt,
+      parkingRuleKey,
+      frontYardFt,
+      rowInsetFt,
+      buildingLineFt: buildingFt + rowInsetFt,
+      parkingLineFt: parkingFt + rowInsetFt,
+      frontYardLineFt: frontYardFt > 0 ? frontYardFt + rowInsetFt : 0,
+    };
   });
 }
 
@@ -93,13 +111,13 @@ export function buildEnvelopes(site: Site, rules: ZoningRuleSet): Envelopes {
   const hard = site.constraints.filter((c) => !c.informational);
   const constraintRegion: Region = unionSolids(hard.map((c) => (c.bufferFt > 0 ? offsetRegion([c.ring], c.bufferFt, 'round') : [c.ring])));
 
-  const buildingYards = yardStrips(site.edges, (i) => sb[i].buildingFt);
-  const parkingYards = yardStrips(site.edges, (i) => sb[i].parkingFt);
-  const frontYardStrips = yardStrips(site.edges, (i) => sb[i].frontYardFt);
+  const buildingYards = yardStrips(site.edges, (i) => sb[i].buildingLineFt);
+  const parkingYards = yardStrips(site.edges, (i) => sb[i].parkingLineFt);
+  const frontYardStrips = yardStrips(site.edges, (i) => sb[i].frontYardLineFt);
   // Pavement (drives): same street / side-rear setbacks as parking, but no residential buffer.
   const pStreet = ruleNumber(rules, 'setback.parking.street', 0);
   const pSide = ruleNumber(rules, 'setback.parking.sideRear', 0);
-  const pavementYards = yardStrips(site.edges, (i) => (site.edges[i].edgeClass === 'front' ? pStreet : pSide));
+  const pavementYards = yardStrips(site.edges, (i) => (site.edges[i].edgeClass === 'front' ? pStreet + sb[i].rowInsetFt : pSide));
 
   const resBufBuilding = residential.length && resSep > 0 ? offsetRegion(residential, resSep, 'round') : [];
   const resBufParking = residential.length && pRes > 0 ? offsetRegion(residential, pRes, 'round') : [];
@@ -165,9 +183,11 @@ export function governingRuleAt(site: Site, rules: ZoningRuleSet, env: Envelopes
   for (const e of site.edges) {
     const s = env.edgeSetbacks[e.index];
     const d = distToSegment(p, e.a, e.b);
-    const where = e.roadName ? `from the ${e.roadName} right-of-way` : `from the ${e.facing} ${e.edgeClass} lot line`;
-    if (which === 'building') consider(s.buildingRuleKey, s.buildingFt, d, where);
-    else consider(s.parkingRuleKey, s.parkingFt, d, where);
+    const where = e.roadName
+      ? `from the ${e.roadName} right-of-way${s.rowInsetFt > 0 ? ` (ROW line assumed ${s.rowInsetFt.toFixed(0)} ft inside the lot line)` : ''}`
+      : `from the ${e.facing} ${e.edgeClass} lot line`;
+    if (which === 'building') consider(s.buildingRuleKey, s.buildingFt, d - s.rowInsetFt, where);
+    else consider(s.parkingRuleKey, s.parkingFt, d - s.rowInsetFt, where);
   }
   for (const dist of site.districts) {
     if (dist.kind !== 'residential' || pointInRing(p, dist.ring)) continue;

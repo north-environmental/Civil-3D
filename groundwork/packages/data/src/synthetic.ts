@@ -138,9 +138,9 @@ export function buildSyntheticHeilmandale(now: string): { fixture: SiteFixture; 
 
   const parcelRing: Ring = WR(P);
   const fixture: SiteFixture = {
-    id: 'heilmandale',
-    name: '1625 Heilmandale Rd (synthetic fixture)',
-    address: '1625 Heilmandale Rd, Lebanon, PA 17046 (North Lebanon Township, Lebanon County)',
+    id: 'synthetic',
+    name: 'Synthetic test site (not a real place)',
+    address: 'Synthetic test site',
     jurisdiction: 'North Lebanon Township, Lebanon County, PA',
     crs: EPSG_2272,
     synthetic: true,
@@ -166,7 +166,8 @@ export function buildSyntheticHeilmandale(now: string): { fixture: SiteFixture; 
     ],
     asBuilt,
     terrain: { x0, y0, cellFt, nx, ny, source: `${SYN}: ~40 ft of relief draining south toward the wetland`, synthetic: true, preDevelopment: true, verticalDatum: 'NAVD88 (nominal)', file: 'dem.f32' },
-    imagery: { available: false, attribution: '' },
+    imagery: { available: false, sets: [], attribution: '' },
+    neighbors: [],
     provenance: [
       prov('parcel', 'Approximate, digitized-style placeholder: ~110 ac irregular parcel (109.6 ac). Not the recorded parcel boundary.'),
       prov('roads', 'Route 72 along the east edge, Heilmandale Rd along the north edge, Orange Ln along the west edge. Layout is a guess; ROW widths are class defaults.'),

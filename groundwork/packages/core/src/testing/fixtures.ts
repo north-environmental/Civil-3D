@@ -38,7 +38,8 @@ export function makeTestSite(o: TestSiteOpts): Site {
     constraints: o.constraints ?? [],
     asBuilt: [],
     terrain: { ...spec, source: 'test', synthetic: true, preDevelopment: true, verticalDatum: 'NAVD88', file: 'dem.f32' },
-    imagery: { available: false, attribution: '' },
+    neighbors: [],
+    imagery: { available: false, sets: [], attribution: '' },
     provenance: [],
   };
   return assembleSite(fixture, dem);

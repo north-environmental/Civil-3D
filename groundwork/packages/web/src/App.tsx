@@ -5,7 +5,7 @@ import { LeftPanel } from './panels/LeftPanel';
 import { RightPanel } from './panels/RightPanel';
 import { TopBar } from './panels/TopBar';
 import { CenterView } from './panels/CenterView';
-import { CompareDialog, HelpDialog } from './panels/HelpDialog';
+import { CompareDialog, DataDialog, HelpDialog } from './panels/HelpDialog';
 import { RenderRoot } from './render/RenderRoot';
 
 const params = new URLSearchParams(location.search);
@@ -90,6 +90,7 @@ export function App() {
       <BottomBar />
       <HelpDialog />
       <CompareDialog />
+      <DataDialog />
     </div>
   );
 }

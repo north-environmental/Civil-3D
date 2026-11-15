@@ -6,6 +6,8 @@ import {
   type Ring,
   type Scenario,
   bboxOf,
+  distToRing,
+  pointInRing,
   polylineLength,
   pointAlong,
   ringCentroid,
@@ -28,6 +30,8 @@ export type Scene = {
   underlays?: Overlay[];
   /** Extra layers drawn between the site base and the labels (design objects, envelopes, grading). */
   overlays: Overlay[];
+  /** True when an aerial is drawn under the plan: linework gets casings, road bands are dropped. */
+  imageryOn?: boolean;
   /** Render-mode extras */
   showChrome: boolean;
 };
@@ -253,6 +257,33 @@ export function drawScaleBar(ctx: CanvasRenderingContext2D, v: View, x: number, 
   ctx.restore();
 }
 
+const AERIAL_HALO = 'rgba(12,14,18,0.92)';
+const labelPointCache = new Map<string, Pt | null>();
+
+/** Screen point inside `ring` (and outside the lot), farthest from the ring's edge, on a coarse screen grid. */
+function districtLabelPoint(v: View, id: string, ring: Ring, lot: Ring, box: { x0: number; y0: number; x1: number; y1: number }): Pt | null {
+  const key = `${id}:${v.w}x${v.h}:${v.scale.toFixed(5)}:${Math.round(v.cx)}:${Math.round(v.cy)}`;
+  const hit = labelPointCache.get(key);
+  if (hit !== undefined) return hit;
+  let best: Pt | null = null;
+  let bestD = 40 / v.scale; // need ~40 px of clearance for a label
+  const step = 48;
+  for (let y = box.y0; y <= box.y1; y += step) {
+    for (let x = box.x0; x <= box.x1; x += step) {
+      const w = s2w(v, [x, y]);
+      if (!pointInRing(w, ring) || pointInRing(w, lot)) continue;
+      const d = Math.min(distToRing(w, ring), distToRing(w, lot));
+      if (d > bestD) {
+        bestD = d;
+        best = [x, y];
+      }
+    }
+  }
+  if (labelPointCache.size > 400) labelPointCache.clear();
+  labelPointCache.set(key, best);
+  return best;
+}
+
 export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): void {
   const pal = scene.palette;
   const site = scene.project?.site ?? null;
@@ -263,15 +294,19 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
   const labels: LabelReq[] = [];
   for (const u of scene.underlays ?? []) u(ctx, v, labels);
 
+  const onAerial = !!scene.imageryOn;
   if (site) {
     if (L.districts) {
       for (const d of site.districts) {
         const color = pal.district[d.kind] ?? pal.district.other;
-        ctx.globalAlpha = 0.1;
-        fillRegion(ctx, v, [d.ring], color);
-        ctx.globalAlpha = 0.55;
+        // The lot's own district is not tinted: it would wash out the aerial under the design.
+        if (d.id !== 'dist-site') {
+          ctx.globalAlpha = onAerial ? 0.16 : 0.1;
+          fillRegion(ctx, v, [d.ring], color);
+        }
+        ctx.globalAlpha = onAerial ? 0.9 : 0.55;
         ctx.setLineDash([10, 5, 2, 5]);
-        fillRegion(ctx, v, [d.ring], null, color, 1);
+        fillRegion(ctx, v, [d.ring], null, color, onAerial ? 1.5 : 1);
         ctx.setLineDash([]);
         ctx.globalAlpha = 1;
       }
@@ -279,10 +314,21 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
     if (L.existingContours && scene.existingContours) {
       drawContours(ctx, v, scene.existingContours, pal.contourMinor, pal.contourIndex, L.labels ? labels : null, pal.contourIndex, v.scale > 0.6 ? 1 : 2);
     }
+    if (L.neighbors && site.neighbors?.length) {
+      ctx.globalAlpha = onAerial ? 0.55 : 0.8;
+      for (const ring of site.neighbors) fillRegion(ctx, v, [ring], null, onAerial ? '#f2f4f7' : pal.roadEdge, 0.75);
+      ctx.globalAlpha = 1;
+    }
     if (L.roads) {
       for (const r of site.roads) {
-        fillRegion(ctx, v, [roadBand(r.centerline, r.rowWidthFt / 2)], pal.road, pal.roadEdge, 1);
-        strokeLine(ctx, v, r.centerline, pal.roadEdge, 1, [14, 10]);
+        if (onAerial) {
+          // The pavement is visible in the aerial: show only the centerline the frontage tests use.
+          strokeLine(ctx, v, r.centerline, 'rgba(17,20,24,0.55)', 3);
+          strokeLine(ctx, v, r.centerline, 'rgba(255,214,102,0.9)', 1, [14, 10]);
+        } else {
+          fillRegion(ctx, v, [roadBand(r.centerline, r.rowWidthFt / 2)], pal.road, pal.roadEdge, 1);
+          strokeLine(ctx, v, r.centerline, pal.roadEdge, 1, [14, 10]);
+        }
       }
     }
     if (L.constraints) {
@@ -315,7 +361,8 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
   if (site) {
     if (L.parcel) {
       ctx.lineJoin = 'miter';
-      fillRegion(ctx, v, [site.parcel.ring], null, pal.parcel, 1.6);
+      if (onAerial) fillRegion(ctx, v, [site.parcel.ring], null, 'rgba(17,20,24,0.75)', 4.5);
+      fillRegion(ctx, v, [site.parcel.ring], null, onAerial ? '#ffffff' : pal.parcel, onAerial ? 2 : 1.6);
     }
     if (L.labels) {
       if (L.roads) {
@@ -326,7 +373,7 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
             const { pt, dir } = pointAlong(r.centerline, len * t);
             const s = w2s(v, pt);
             if (s[0] > 60 && s[0] < v.w - 60 && s[1] > 30 && s[1] < v.h - 30) {
-              labels.push({ text: r.name.toUpperCase(), x: s[0], y: s[1], priority: 8, color: pal.roadLabel, size: 11, bold: true, angle: textAngle(dir) });
+              labels.push({ text: r.name.toUpperCase(), x: s[0], y: s[1], priority: 8, color: onAerial ? '#ffe9a8' : pal.roadLabel, size: 11, bold: true, angle: textAngle(dir), halo: onAerial ? AERIAL_HALO : undefined });
               break;
             }
           }
@@ -336,11 +383,10 @@ export function drawPlan(ctx: CanvasRenderingContext2D, v: View, scene: Scene): 
         const view = { x0: 70, y0: 50, x1: v.w - 70, y1: v.h - 50 };
         for (const d of site.districts) {
           if (d.code === site.zoningDistrictCode) continue;
-          // Put the label at the on-screen vertex-centroid sample nearest the district's centroid.
-          const c = w2s(v, ringCentroid(d.ring));
-          const x = Math.min(view.x1, Math.max(view.x0, c[0]));
-          const y = Math.min(view.y1, Math.max(view.y0, c[1]));
-          labels.push({ text: `${d.code} · ${d.name}`, x, y, priority: 3, color: pal.district[d.kind] ?? pal.textDim, size: 10.5 });
+          // Label at the on-screen point deepest inside the district (real districts are irregular).
+          const at = districtLabelPoint(v, d.id, d.ring, site.parcel.ring, view);
+          if (!at) continue;
+          labels.push({ text: `${d.code} · ${d.name}`, x: at[0], y: at[1], priority: 3, color: pal.district[d.kind] ?? pal.textDim, size: 10.5, bold: onAerial, halo: onAerial ? AERIAL_HALO : undefined });
         }
       }
     }

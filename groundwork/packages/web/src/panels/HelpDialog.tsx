@@ -93,3 +93,50 @@ export function CompareDialog() {
     </div>
   );
 }
+
+/** Where each layer of the site came from, and what is assumed or missing. */
+export function DataDialog() {
+  const open = useApp((s) => s.dataOpen);
+  const site = useApp((s) => s.project?.site ?? null);
+  if (!open) return null;
+  const host = (u: string) => u.replace(/^[a-z]+:\/\//, '').split(/[/?]/)[0];
+  return (
+    <div className="overlay" onClick={() => app.set({ dataOpen: false })}>
+      <div className="dialog wide" onClick={(e) => e.stopPropagation()} data-testid="data-dialog">
+        <h2>Where the site data comes from</h2>
+        {!site && <p className="dim">No site is loaded.</p>}
+        {site && (
+          <>
+            <p className="dim">
+              {site.address} · {site.jurisdiction} · {(site.areaSf / 43560).toFixed(2)} ac · coordinates in EPSG:{site.crs.epsg} (US survey feet).{' '}
+              {site.synthetic ? 'This is a generated test site, not a real place.' : 'Public GIS data cached with the app, so it works offline. Planning-level: not a survey, a wetland delineation or a zoning determination.'}
+            </p>
+            <table className="data-table">
+              <tbody>
+                {site.provenance.map((p, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className={`dot ${p.synthetic ? 'warn' : 'ok'}`} title={p.synthetic ? 'Not loaded, or assumed' : 'Loaded from the source'} />
+                      {p.layer}
+                    </td>
+                    <td>
+                      {p.notes}
+                      <div className="src">
+                        {host(p.sourceUrl)} · {p.fetchedAt.slice(0, 10)} · {p.license}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        <div style={{ textAlign: 'right', marginTop: 14 }}>
+          <button className="btn" onClick={() => app.set({ dataOpen: false })}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

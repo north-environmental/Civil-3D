@@ -4,26 +4,57 @@ Groundwork is a concept-level planning demo. Nothing it produces is for construc
 
 ## Data in this build
 
-- **The committed site fixture is synthetic.** The build sandbox's network policy refused every data host (HTTP 403 at
-  the egress proxy; each was tried once). Parcel shape, road layout, district polygons, wetland and terrain are generated
-  stand-ins (see `data/sites/heilmandale/provenance.json`). Do not present them as the real site.
-- **The live fetch (`npm run fetch-site-data`) has never run against the real services.** The adapters in
-  `packages/data/src/live.ts` follow the endpoints in the spec and standard ArcGIS REST / Overpass conventions, but
-  field names, layer ids (e.g. NFHL layer 28, NWI layer 0) and response shapes are unverified. Expect to fix small things
-  the first time it runs.
-- **Pre-development terrain check is only a warning.** If the 3DEP DEM is flat under the as-built footprint the script
-  flags it and marks the terrain as not pre-development; it does not automatically select a pre-2020 LiDAR collection
-  (PAMAP 2006–2008 or the 2017/2018 QL2 projects). That selection is manual.
-- **Zoning districts are not digitized from the township map.** They follow the 2020 Planning Commission minutes
-  (residential N and W, agricultural S, commercial across Route 72) with generic codes (RES / AG / COM). District
-  boundaries along streets are assumed at the centerline.
+The demo site now uses real public GIS data (fetched 2026-11-15, cached in `data/sites/heilmandale/`; sources in
+`provenance.json` and in the app's "where the site data comes from" dialog). What that data is not:
+
+- **The parcel is county tax-map linework, not a boundary survey.** It is the 2017 county snapshot of the 110.35 ac
+  tract (before development), simplified from 434 to 47 vertices with a 1 ft tolerance.
+- **Right-of-way widths are assumed** (60 ft state route, 50 ft local street). Along Heilmandale Rd the lot runs to
+  the road centerline, so every street setback there is measured from a right-of-way line assumed 30 ft inside the
+  lot line. A recorded or ultimate right-of-way wider than 60 ft would move the front yard further in.
+- **Lot area is the gross deeded area**, including the part inside the Heilmandale Rd right-of-way. Coverage and
+  landscaping percentages use it. The ordinance's definition of lot area was not checked.
+- **Orange Ln runs just inside the east lot line** in the county data; it is treated as frontage. Whether it is a
+  public street, and its right-of-way, were not verified.
+- **Wetlands are NWI planning-level mapping**, not a field delineation. The 25 ft buffer is an EFCG assumption.
+- **No floodplain layer.** The FEMA flood hazard service timed out when the fixture was built. The township zoning
+  map shows flood zone A along streams away from the lot, but that was not checked against FEMA.
+- **Zoning districts were digitized from the township's 2023 zoning map PDF** by colour classification and matched to
+  the parcel (`scripts/digitize-zoning-map.py`): about ±10 ft plus the map's own generalization. Neighbouring
+  districts are stretched up to 30 ft to meet the lot line. The map labels the district "I"; the rule set calls it I-1.
+- **Roads come from the county centerline layer**, because OpenStreetMap was unreachable. There is therefore no
+  as-built building outline; the as-built comparison is the latest aerial photo.
+- **Terrain is USGS 3DEP resampled to 5 ft cells.** It was judged pre-construction by looking at a hillshade (no
+  building pad); the collection date was not read from metadata.
+- **The aerials are cached at 1 ft (2018–2020) and 2 ft (latest) per pixel** for the lot plus 800 ft. Outside that
+  the plan background is blank. Aerial dates are the service's collection range, not an exact flight date.
+- **Only this one site can be loaded.** The fetch script is written for Lebanon County, PA sources and one address.
 - **Ordinance text is an extract.** `get_ordinance_text` returns the reference document's extracts (flagged
-  `verbatim: false`), not the official eCode360 wording. Values were not reconciled against the official code or later
-  amendments (e.g. Ord. 2-2023). The definition of "lot coverage" (§ 27-102) is unresolved; both readings are shown.
+  `verbatim: false`), not the official eCode360 wording (eCode360 refuses automated access). Values were not
+  reconciled against the official code or later amendments (e.g. Ord. 2-2023). The definition of "lot coverage"
+  (§ 27-102) is unresolved; both readings are shown.
 - **SALDO and the stormwater ordinance were not mined.** Driveway landing grades, drive grades and curb standards are
   EFCG defaults marked "verify vs SALDO".
-- **Imagery is absent** in the synthetic fixture; the tile-drawing code path is untested.
-- **Right-of-way widths** are class defaults (60 ft state, 50 ft local), flagged as assumed.
+
+## Chat panel
+
+- With Claude Code installed the chat is Claude; without it, a pattern-matching parser that handles common phrasings
+  only (see `docs/CHAT.md`). The parser does not guess: unknown requests get a "here is what I understand" reply.
+- The Claude engine was tested end to end on Linux only. Starting `claude` on Windows goes through the shell and is
+  untested.
+- Claude's replies are not checked by the app. The numbers it quotes come from tool results, but its wording and any
+  advice are its own.
+- The plan image PNG is drawn by the browser at 3,600 px wide; it is a picture of the plan, not a scaled drawing.
+
+## Layout on the real lot
+
+- The solver was tuned on the synthetic site. On the real lot it places the stormwater reservation by lowest free
+  ground without regard to tree cover, and the building footprint (760 × 540 ft) is squarer than the built facility.
+- Grading on the real terrain runs (about 200,000 CY of cut for the headline scenario, balanced) but was not reviewed
+  in this pass. About 3,700 SF of grading falls outside the lot line along the road frontage and is reported as a
+  warning.
+- The "Zoning" tab lists Orange Ln as 527 ft of frontage (all edges on the road); commands report the longest
+  continuous run, 402 ft.
 
 ## Zoning engine
 
@@ -71,7 +102,7 @@ Groundwork is a concept-level planning demo. Nothing it produces is for construc
   AutoCAD or Civil 3D in this sandbox. It omits LAYOUT objects; if AutoCAD refuses it, use `RECOVER` or import through
   a DXF-tolerant tool. Text is single-line ASCII.
 - GeoJSON is reprojected with proj4 from EPSG:2272; no datum grid shifts.
-- The PNG sheet is a screenshot at 75 dpi, not a plotted drawing.
+- The 24 × 36 PNG sheet is a screenshot at 75 dpi, not a plotted drawing, and needs a local Chromium.
 
 ## App and MCP
 

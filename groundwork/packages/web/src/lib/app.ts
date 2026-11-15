@@ -14,29 +14,36 @@ export type LayerId =
   | 'cutfill'
   | 'constraints'
   | 'asBuilt'
+  | 'neighbors'
   | 'districts'
   | 'design'
   | 'sweptPath'
   | 'labels';
 
 export const LAYERS: { id: LayerId; label: string; swatch: string; defaultOn: boolean }[] = [
-  { id: 'parcel', label: 'Parcel', swatch: '#ffffff', defaultOn: true },
-  { id: 'roads', label: 'Roads', swatch: '#8b97a5', defaultOn: true },
+  { id: 'imagery', label: 'Aerial photo', swatch: '#6b7a52', defaultOn: true },
+  { id: 'asBuilt', label: 'Aerial, as built', swatch: '#d67ad2', defaultOn: false },
+  { id: 'parcel', label: 'Property boundary', swatch: '#ffffff', defaultOn: true },
+  { id: 'neighbors', label: 'Neighbouring lots', swatch: '#9aa7b5', defaultOn: true },
+  { id: 'roads', label: 'Roads', swatch: '#ffd666', defaultOn: true },
   { id: 'setbacks', label: 'Setbacks / envelopes', swatch: '#e8a33d', defaultOn: true },
   { id: 'design', label: 'Design objects', swatch: '#c9ced6', defaultOn: true },
   { id: 'constraints', label: 'Constraints', swatch: '#3fb6a8', defaultOn: true },
   { id: 'districts', label: 'Zoning districts', swatch: '#b48ead', defaultOn: true },
-  { id: 'existingContours', label: 'Existing contours', swatch: '#7d6b52', defaultOn: true },
+  { id: 'existingContours', label: 'Existing contours (LiDAR)', swatch: '#b0926a', defaultOn: false },
   { id: 'proposedContours', label: 'Proposed contours', swatch: '#e6e1d6', defaultOn: true },
   { id: 'cutfill', label: 'Cut / fill', swatch: 'linear-gradient(90deg,#d0453a,#2f6fd0)', defaultOn: false },
   { id: 'sweptPath', label: 'WB-67 swept path', swatch: '#f0b35a', defaultOn: false },
-  { id: 'asBuilt', label: 'As-built reference', swatch: '#d67ad2', defaultOn: false },
-  { id: 'imagery', label: 'Imagery', swatch: '#4b5d3a', defaultOn: false },
   { id: 'labels', label: 'Labels', swatch: '#9aa7b5', defaultOn: true },
 ];
 
-export type RightTab = 'checks' | 'yield' | 'earthwork' | 'program' | 'zoning' | 'activity';
+export type RightTab = 'chat' | 'checks' | 'yield' | 'earthwork' | 'program' | 'zoning' | 'activity';
 export type Tool = 'select' | 'section';
+
+export type ChatStep = { label: string; summary: string; ok: boolean };
+export type ChatMessage = { id: number; role: 'user' | 'assistant'; text: string; steps: ChatStep[]; status: 'running' | 'done' | 'error'; clientActions?: string[] };
+/** Chat panel state, owned by the server and pushed over the WebSocket. */
+export type ChatState = { engine: 'claude' | 'builtin'; engineLabel: string; engineNote: string; busy: boolean; examples: string[]; messages: ChatMessage[] };
 
 export type ConsoleLine = { kind: 'in' | 'out' | 'err'; text: string };
 
@@ -61,6 +68,9 @@ export type AppState = {
   toast: string | null;
   helpOpen: boolean;
   compareOpen: boolean;
+  /** "Where the site data comes from" dialog. */
+  dataOpen: boolean;
+  chat: ChatState | null;
   zoomTo: { ids: string[]; nonce: number } | null;
   surface3d: 'existing' | 'proposed';
   drape3d: 'plain' | 'cutfill';
@@ -85,7 +95,7 @@ export const app = createStore<AppState>({
   hoverTip: null,
   view: '2d',
   theme: savedTheme,
-  rightTab: 'checks',
+  rightTab: 'chat',
   tool: 'select',
   sectionLine: null,
   ghost: null,
@@ -95,6 +105,8 @@ export const app = createStore<AppState>({
   toast: null,
   helpOpen: false,
   compareOpen: false,
+  dataOpen: false,
+  chat: null,
   zoomTo: null,
   surface3d: 'proposed',
   drape3d: 'plain',
@@ -136,9 +148,11 @@ export async function runCommand(name: string, input: unknown = {}, opts: { quie
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export function toast(text: string): void {
+  if (!text) return;
   app.set({ toast: text });
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => app.set({ toast: null }), 6000);
+  // Long messages (export results, errors with a fix) stay up long enough to read.
+  toastTimer = setTimeout(() => app.set({ toast: null }), Math.min(15000, 6000 + text.length * 40));
 }
 
 async function fetchDem(siteKey: string): Promise<void> {
@@ -182,6 +196,7 @@ export function connect(): void {
     try {
       const msg = JSON.parse(ev.data as string);
       if (msg.type === 'state' && msg.project) void onProject(msg.project as ClientProject);
+      else if (msg.type === 'chat' && msg.chat) app.set({ chat: msg.chat as ChatState });
     } catch {
       /* ignore malformed frames */
     }
@@ -192,6 +207,25 @@ export function connect(): void {
     setTimeout(connect, 1500);
   };
   ws.onerror = () => ws.close();
+}
+
+/** Send a plain-text request to the chat backend. Progress arrives over the WebSocket. */
+export async function sendChat(message: string): Promise<void> {
+  try {
+    const res = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) });
+    const json = (await res.json()) as { ok: boolean; error?: string };
+    // Errors that belong to the conversation are already in the transcript; only surface the rest.
+    if (!json.ok && json.error && !app.get().chat?.messages.some((m) => m.status === 'error' && m.text === json.error)) toast(json.error);
+  } catch (err) {
+    toast(`Server not reachable: ${(err as Error).message}`);
+  }
+}
+export async function chatAction(action: 'stop' | 'reset'): Promise<void> {
+  try {
+    await fetch(`/api/chat/${action}`, { method: 'POST' });
+  } catch {
+    /* the socket reconnect will resync */
+  }
 }
 
 /** One-shot state fetch (used by render mode, which does not need a socket). */

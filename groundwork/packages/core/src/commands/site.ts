@@ -1,6 +1,6 @@
 /** Site commands: load_site, get_site_context, add_constraint. */
 import { z } from 'zod';
-import { type Pt, bboxOf, ensureCCW, ringArea, ringCentroid } from '../geometry/basic';
+import { type Pt, type Ring, bboxOf, ensureCCW, pointInRing, ringArea, ringCentroid } from '../geometry/basic';
 import { steepSlopeConstraints, terrainStats } from '../site/terrain';
 import { type Site } from '../site/model';
 import type { Project } from '../site/project';
@@ -48,20 +48,36 @@ export function siteContext(site: Site) {
       centroid: ringCentroid(site.parcel.ring).map((v) => Math.round(v)),
     },
     frontages: fr.map((f) => {
-      const e = site.edges[f.edgeIndexes[0]];
+      // A long frontage can face more than one district: weight by edge length and list them all.
+      const byLen = (pick: (e: (typeof site.edges)[number]) => string) => {
+        const m = new Map<string, number>();
+        for (const i of f.edgeIndexes) m.set(pick(site.edges[i]), (m.get(pick(site.edges[i])) ?? 0) + site.edges[i].lengthFt);
+        return [...m.entries()].sort((x, y) => y[1] - x[1]).map(([k]) => k);
+      };
+      let nx = 0;
+      let ny = 0;
+      for (const i of f.edgeIndexes) {
+        const e = site.edges[i];
+        const d = Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) || 1;
+        nx += (e.b[1] - e.a[1]) / d * e.lengthFt;
+        ny += -(e.b[0] - e.a[0]) / d * e.lengthFt;
+      }
       return {
         road: f.roadName,
         lengthFt: Math.round(f.lengthFt),
-        side: e.facing,
-        acrossStreetDistrict: e.adjacentDistrictCode ?? 'unknown',
-        acrossStreetKind: e.adjacentDistrictKind ?? 'unknown',
+        side: compass8(azimuthDeg([nx, ny])),
+        acrossStreetDistrict: byLen((e) => e.adjacentDistrictCode ?? 'unknown').join(' + '),
+        acrossStreetKind: byLen((e) => e.adjacentDistrictKind ?? 'unknown').join(' + '),
         acrossStreetFromResidential: f.acrossStreetFromResidential,
         rowWidthFt: site.roads.find((r) => r.id === f.roadId)?.rowWidthFt ?? null,
         rowAssumed: site.roads.find((r) => r.id === f.roadId)?.rowAssumed ?? true,
       };
     }),
     otherEdges: [...adj.values()].map((a) => ({ ...a, lengthFt: Math.round(a.lengthFt) })),
-    constraints: site.constraints.map((c) => ({
+    // Only what touches the lot: mapped features on neighbouring land are drawn but do not shape the fit.
+    constraints: site.constraints
+      .filter((c) => pointInRing(ringCentroid(c.ring), site.parcel.ring) || c.ring.some((q) => pointInRing(q, site.parcel.ring)))
+      .map((c) => ({
       id: c.id,
       kind: c.kind,
       name: c.name,
@@ -86,9 +102,13 @@ export function siteContext(site: Site) {
       generalFall: `toward the ${stats.fallDirection}`,
     },
     asBuiltReference: site.asBuilt.map((a) => ({ name: a.name, kind: a.kind, areaSf: Math.round(ringArea(a.ring)) })),
-    dataNotes: site.provenance.filter((p) => p.synthetic).length
-      ? ['Site data is SYNTHETIC (no network during the build). Do not present parcel, terrain or district geometry as real.', ...site.provenance.map((p) => `${p.layer}: ${p.notes}`)]
-      : site.provenance.map((p) => `${p.layer}: ${p.sourceUrl} (${p.fetchedAt.slice(0, 10)}) ${p.notes}`),
+    dataNotes: site.synthetic
+      ? ['Site data is SYNTHETIC (a generated test site). Do not present parcel, terrain or district geometry as real.', ...site.provenance.map((p) => `${p.layer}: ${p.notes}`)]
+      : site.provenance.map((p) => {
+          const host = p.sourceUrl.replace(/^https?:\/\//, '').split(/[/?]/)[0];
+          const note = p.notes.length > 300 ? `${p.notes.slice(0, 297)}...` : p.notes;
+          return `${p.layer}${p.synthetic ? ' (NOT LOADED or assumed)' : ''}: ${note} [${host}, ${p.fetchedAt.slice(0, 10)}]`;
+        }),
   };
 }
 
@@ -120,7 +140,9 @@ defineCommand({
       );
     }
     // Attach derived informational constraints (steep slopes > 25 %) and re-assemble edges.
-    const steep = found.constraints.some((c) => c.kind === 'steepSlope') ? [] : steepSlopeConstraints(found.dem, 25);
+    // Only slopes on the lot matter for the test fit; stream banks and road cuts on neighbouring land are noise.
+    const onLot = (c: { ring: Ring }) => pointInRing(ringCentroid(c.ring), found.parcel.ring) || c.ring.some((q) => pointInRing(q, found.parcel.ring));
+    const steep = found.constraints.some((c) => c.kind === 'steepSlope') ? [] : steepSlopeConstraints(found.dem, 25).filter(onLot);
     const site: Site = steep.length ? assembleSite({ ...found, constraints: [...found.constraints, ...steep] }, found.dem) : found;
     const rules = BUILTIN_RULESETS[site.zoningDistrictCode] ?? null;
     const project: Project = {
@@ -135,7 +157,7 @@ defineCommand({
     const frText = fr.map((f) => `${f.roadName} (${fmtInt(f.lengthFt)} ft)`).join(', ');
     const msg =
       `Loaded ${site.address}: ${fmtAc(site.areaSf, 1)} parcel in ${site.jurisdiction}, district ${site.zoningDistrictCode}; frontage on ${frText || 'no public road'}.` +
-      (site.synthetic ? ' Site data is SYNTHETIC (generated placeholder; no network during the build).' : '') +
+      (site.synthetic ? ' Site data is SYNTHETIC (a generated test site, not a real place).' : '') +
       (rules ? ` ${rules.districtName} rule set pre-loaded (${rules.rules.length} rules, confirmed).` : ` No built-in rule set for ${site.zoningDistrictCode}: read the ordinance with get_ordinance_text and propose rules with set_zoning_rules.`);
     return {
       project,

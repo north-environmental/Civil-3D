@@ -1,0 +1,53 @@
+{
+ "at": "2026-11-15T15:03:50.217Z",
+ "reports": [
+  {
+   "layer": "geocode",
+   "source": "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=1625+Heilmandale+Rd%2C+Lebanon%2C+PA+17046&benchmark=Public_AR_Current&format=json",
+   "ok": true,
+   "detail": "1625 HEILMANDALE RD, LEBANON, PA, 17046 → lon -76.46996, lat 40.36835 (interpolated along the street)"
+  },
+  {
+   "layer": "parcel",
+   "source": "https://services1.arcgis.com/9TQ9L457YNtHSPdi/arcgis/rest/services/LebCoTaxParcels/FeatureServer/0/query?outFields=MAP_NUMBER%2CSITUS_ADDR%2CDEEDED_ACR&f=geojson&where=SITUS_ADDR%3D%271625+HEILMANDALE+RD%27&outSR=2272",
+   "ok": true,
+   "detail": "110.35 ac computed (110.35 ac deeded), map number 27-2325148-379540-0000; Lebanon County tax parcel matched by situs address (county GIS snapshot dated 2017: the tract before development). 434 vertices simplified to 47 (1 ft tolerance). Tax-map linework, not a boundary survey."
+  },
+  {
+   "layer": "roads",
+   "source": "https://services1.arcgis.com/9TQ9L457YNtHSPdi/arcgis/rest/services/Roads_0620/FeatureServer/0/query?outFields=RD_NAME%2CST_RT_NO&f=geojson&geometry=2322220%2C377130%2C2327195%2C380750&geometryType=esriGeometryEnvelope&inSR=2272&spatialRel=esriSpatialRelIntersects&outSR=2272&where=1%3D1",
+   "ok": true,
+   "detail": "8 road centerline segments (Elias Ave, Long Ln, Route 72, Heilmandale Rd, Orange Ln, Brandthaven Dr, Mountville Dr, Emma Rd). Right-of-way widths are class defaults (EFCG assumption): confirm against the recorded ROW. OpenStreetMap was tried first and failed (fetch failed), so there is no as-built building footprint."
+  },
+  {
+   "layer": "terrain",
+   "source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=2322220%2C377130%2C2327195%2C380750&bboxSR=2272&imageSR=2272&size=995%2C724&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&f=image",
+   "ok": true,
+   "detail": "USGS 3DEP bare-earth elevation resampled to 5 ft cells (995 × 724), meters converted to ftUS. On the parcel: 507–575 ft, average slope 5.2%. Hillshade reviewed 2026-11-15: farm fields with the swale along the south side and no building pad, so this is the ground before the 2020–2021 construction."
+  },
+  {
+   "layer": "wetlands",
+   "source": "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/0/query?outFields=ATTRIBUTE%2CWETLAND_TYPE&f=geojson&geometry=2322220%2C377130%2C2327195%2C380750&geometryType=esriGeometryEnvelope&inSR=2272&spatialRel=esriSpatialRelIntersects&outSR=2272&where=1%3D1",
+   "ok": true,
+   "detail": "3 NWI polygon(s) in the area, 1 touching the parcel (4.8 ac). Planning-level mapping: a field delineation governs. 25 ft no-disturb buffer is an EFCG assumption."
+  },
+  {
+   "layer": "floodplain",
+   "source": "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+   "ok": false,
+   "detail": "HTTP 504 Gateway Time-out; no floodplain layer: check the FEMA map before relying on this layout"
+  },
+  {
+   "layer": "neighbors",
+   "source": "https://services1.arcgis.com/9TQ9L457YNtHSPdi/arcgis/rest/services/LebCoTaxParcels/FeatureServer/0/query?outFields=MAP_NUMBER&f=geojson&geometry=2322220%2C377130%2C2327195%2C380750&geometryType=esriGeometryEnvelope&inSR=2272&spatialRel=esriSpatialRelIntersects&outSR=2272&where=1%3D1&maxAllowableOffset=2",
+   "ok": true,
+   "detail": "102 neighbouring lot outlines (drawn for context only; no owner data requested)"
+  },
+  {
+   "layer": "districts",
+   "source": "https://northlebanontwppa.gov/wp-content/uploads/2023/06/NLT-Zoning-Map-2023.pdf",
+   "ok": true,
+   "detail": "9 district polygons from: North Lebanon Township Zoning Map (adopted 4/17/2023, printed 6/2/2023; prepared by the Lebanon City Authority / County GIS Department). The PDF was rendered at 300 dpi; district fill colours were classified per pixel, linework and labels were filled from their neighbours, and district outlines were traced and simplified (5 ft tolerance). The raster was georeferenced by matching the Industrial district at 1625 Heilmandale Rd to the county tax parcel (best fit 3.330 ft per pixel, overlap 95.8%). Approximate: about +/- 10 ft plus the map's own generalization. The map states that boundaries shown along roads follow the road centerlines and that the Zoning Hearing Board decides any uncertainty. Only the window around 1625 Heilmandale Rd was digitized; polygons are cut off at the window edge. Neighbouring districts are closed up to the lot line (within 30 ft)."
+  }
+ ]
+}

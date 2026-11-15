@@ -28,7 +28,8 @@ export type TestApp = {
 export async function startTestApp(): Promise<TestApp> {
   const port = await freePort();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'groundwork-e2e-'));
-  const srv = await startServer(['--port', String(port), '--fresh', '--projects-dir', path.join(tmp, 'projects'), '--exports-dir', path.join(tmp, 'exports')]);
+  // The chat panel uses the built-in parser in tests: deterministic, and no Claude usage from a test run.
+  const srv = await startServer(['--port', String(port), '--fresh', '--chat', 'builtin', '--projects-dir', path.join(tmp, 'projects'), '--exports-dir', path.join(tmp, 'exports')]);
   const url = `http://127.0.0.1:${port}`;
   return {
     port,

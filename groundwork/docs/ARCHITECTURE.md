@@ -115,3 +115,18 @@ The `groundwork_designer` prompt and the server instructions describe the workfl
    shows how to build one from public services.
 2. If the district has no built-in rule set, `load_site` says so: read the ordinance with `get_ordinance_text`, propose
    rules with `set_zoning_rules` (same semantic keys), confirm with `confirm_zoning_rules`. No engine changes.
+
+## Chat panel
+
+`POST /api/chat {message}` starts a turn in `packages/server/src/chat.ts`; progress is pushed to the browser as
+`{type: "chat"}` WebSocket messages carrying the whole (small) transcript. Two engines:
+
+- **claude**: spawns the local Claude Code CLI headless (`claude -p --output-format stream-json`) with an MCP config
+  that points at this app's own MCP server, no built-in tools, no user settings, and `mcp__groundwork` pre-approved.
+  Tool calls come back into the app as ordinary `POST /api/commands/:name` requests from the MCP server. The app never
+  talks to the Anthropic API.
+- **builtin**: `interpretRequest` in `packages/core/src/chat/interpret.ts` (pure, unit-tested) maps text to command
+  calls, which the server runs in order.
+
+The plan image export (`packages/web/src/plan/exportPng.ts`) redraws the plan on an off-screen canvas in the browser.
+

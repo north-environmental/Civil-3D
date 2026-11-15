@@ -3,10 +3,17 @@
 A 12–15 minute walkthrough for AEC executives: Claude on one side of the screen, Groundwork in a browser on the other.
 Everything runs offline from the cached fixture.
 
-> **Say this up front.** The site data in this build is **synthetic** (the build sandbox had no access to the public
-> data services). The parcel, roads, wetland and terrain are stand-ins shaped like the real 1625 Heilmandale Rd site;
-> the zoning rules and citations are real extracts of the township code. With `npm run fetch-site-data` on a networked
-> machine the same demo runs on real parcel, LiDAR and wetland data. Results are concept-level, not for construction.
+> **Say this up front.** The site is real public GIS data: the county tax parcel, USGS LiDAR terrain, NWI wetlands,
+> a 2018–2020 aerial and zoning districts digitized from the township map. None of it is a survey, a wetland
+> delineation or a zoning determination, the floodplain layer did not load, and the zoning rules are extracts rather
+> than the official text. Results are concept-level, not for construction.
+
+> **The numbers in the steps below are out of date.** They were written for the earlier synthetic stand-in site and
+> have not been rewritten for the real lot. Current results are in `docs/demo-summary.md` (regenerate with
+> `npm run demo`). Two things differ in substance: trucks now enter from Heilmandale Rd only, because the lot touches
+> Route 72 for just 147 ft and a driveway there cannot be 150 ft clear of the Orange Ln intersection (§ 27-1407), and
+> the real ground has about 68 ft of relief, so earthwork is roughly 200,000 CY of cut rather than 150,000.
+> You can run the whole demo by typing in the app's **Chat** tab instead of Claude Desktop (`docs/CHAT.md`).
 
 ## Before the audience arrives
 

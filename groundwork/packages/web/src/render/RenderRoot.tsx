@@ -6,6 +6,7 @@ import type { Pt } from '@groundwork/core';
 import { CutFillLegend } from '../panels/CenterView';
 import { SectionChart } from '../panels/SectionPanel';
 import { PlanView } from '../plan/PlanView';
+import { imageryPending } from '../plan/imagery';
 import { derived } from '../plan/derived';
 import { ensureSurfaces, surfaces } from '../plan/surfaces';
 import { useStore } from '../lib/store';
@@ -53,6 +54,7 @@ export function RenderRoot({ view, params }: { view: string; params: URLSearchPa
     const s = app.get();
     // Ready once the DEM-derived contours exist and, for a graded scenario, the proposed surface is in.
     if (!s.project?.site) return ready();
+    if (imageryPending() > 0) return; // aerial chunks still loading; each load triggers a redraw
     if (!derived.get().existingContours) return;
     if (gradedScenario && !surfaces.get().key) return;
     ready();

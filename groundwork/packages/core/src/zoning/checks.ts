@@ -153,7 +153,8 @@ export function evaluateZoningChecks(site: Site, rules: ZoningRuleSet, s: Scenar
     let worst = Infinity;
     let worstEdge = edges[0];
     for (const e of edges) {
-      const d = ringToSegmentDist(building.polygon, e.a, e.b) - env.edgeSetbacks[e.index].buildingFt;
+      // Measured from the street ROW line, which can sit inside a lot line deeded to the centerline.
+      const d = ringToSegmentDist(building.polygon, e.a, e.b) - env.edgeSetbacks[e.index].buildingLineFt;
       if (d < worst) {
         worst = d;
         worstEdge = e;
@@ -241,7 +242,7 @@ export function evaluateZoningChecks(site: Site, rules: ZoningRuleSet, s: Scenar
     let where = '';
     for (const e of site.edges) {
       if (!filter(e.index)) continue;
-      const x = ringToSegmentDist(ring, e.a, e.b);
+      const x = ringToSegmentDist(ring, e.a, e.b) - env.edgeSetbacks[e.index].rowInsetFt;
       if (x < d) {
         d = x;
         where = e.roadName ? `the ${e.roadName} right-of-way` : `the ${e.facing} lot line`;

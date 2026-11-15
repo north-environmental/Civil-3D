@@ -17,7 +17,7 @@ afterAll(async () => {
 describe('phase 3: test fit in the UI', () => {
   it('generates a layout from the Program tab and shows yield + checks', async () => {
     const page = await openPage(browser, app.url);
-    await page.waitForSelector('[data-testid="synthetic-badge"]');
+    await page.waitForSelector('[data-testid="data-badge"]');
     await page.click('[data-testid="tab-program"]');
     await page.fill('#pf-buildingSf', '410000');
     await page.click('[data-testid="btn-generate"]');

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { type Check, type Program, buildAssumptions, fmtInt } from '@groundwork/core';
 import { type RightTab, app, runCommand, useApp, useScenario } from '../lib/app';
+import { ChatPanel } from './ChatPanel';
 
 const TABS: { id: RightTab; label: string }[] = [
+  { id: 'chat', label: 'Chat' },
   { id: 'checks', label: 'Checks' },
   { id: 'yield', label: 'Yield' },
-  { id: 'earthwork', label: 'Earthwork' },
+  { id: 'earthwork', label: 'Earth' },
   { id: 'program', label: 'Program' },
   { id: 'zoning', label: 'Zoning' },
   { id: 'activity', label: 'Activity' },
@@ -27,7 +29,8 @@ export function RightPanel() {
           </button>
         ))}
       </div>
-      <div className="tab-body" data-testid={`body-${tab}`}>
+      <div className={`tab-body ${tab === 'chat' ? 'flush' : ''}`} data-testid={`body-${tab}`}>
+        {tab === 'chat' && <ChatPanel />}
         {tab === 'checks' && <ChecksTab />}
         {tab === 'yield' && <YieldTab />}
         {tab === 'earthwork' && <EarthworkTab />}

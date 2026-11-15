@@ -46,12 +46,14 @@ export function LeftPanel() {
     <div className="left" data-testid="left-panel">
       <div className="panel-title">Layers</div>
       {LAYERS.map((l) => {
-        const unavailable = l.id === 'imagery' && !site?.imagery.available;
+        const sets = site?.imagery.sets ?? [];
+        const set = l.id === 'imagery' ? sets[0] : l.id === 'asBuilt' ? sets[1] : undefined;
+        const unavailable = !!site && ((l.id === 'imagery' && !sets[0]) || (l.id === 'asBuilt' && !sets[1] && !site.asBuilt.length));
         return (
-          <label key={l.id} className={`layer-row ${layers[l.id] ? '' : 'off'}`} title={unavailable ? 'No cached imagery in this fixture' : ''}>
-            <input type="checkbox" checked={layers[l.id]} disabled={unavailable} onChange={() => app.set({ layers: { ...layers, [l.id]: !layers[l.id] } })} />
+          <label key={l.id} className={`layer-row ${layers[l.id] ? '' : 'off'}`} title={unavailable ? 'No aerial photo is cached for this site' : (set?.attribution ?? '')}>
+            <input type="checkbox" checked={layers[l.id] && !unavailable} disabled={unavailable} onChange={() => app.set({ layers: { ...layers, [l.id]: !layers[l.id] } })} />
             <span className="swatch" style={{ background: l.swatch }} />
-            <span>{l.label}</span>
+            <span>{set?.label ?? l.label}</span>
           </label>
         );
       })}

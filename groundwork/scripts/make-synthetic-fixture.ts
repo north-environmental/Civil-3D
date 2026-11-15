@@ -1,5 +1,5 @@
 /**
- * Writes the SYNTHETIC fallback fixture to data/sites/heilmandale/ (site.json, dem.f32, ordinance.json,
+ * Writes the SYNTHETIC test fixture to data/sites/synthetic/ (site.json, dem.f32, ordinance.json,
  * provenance.json). Deterministic. Used when no live source is reachable (SPEC §6.3).
  */
 import fs from 'node:fs';
@@ -10,7 +10,7 @@ import { buildSyntheticHeilmandale } from '../packages/data/src/synthetic';
 import { writeFixture } from '../packages/data/src/fixtures';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const dir = path.join(root, 'data', 'sites', 'heilmandale');
+const dir = path.join(root, 'data', 'sites', 'synthetic');
 
 // A fixed timestamp keeps the committed fixture byte-stable across regenerations.
 const now = process.argv.includes('--now') ? new Date().toISOString() : '2026-11-13T00:00:00.000Z';

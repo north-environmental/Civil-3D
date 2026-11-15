@@ -26,6 +26,12 @@ import type { Grid } from '../geometry/grid';
 const ROW_MATCH_TOL_FT = 20;
 /** Max angle between an edge and the road for the edge to count as frontage, degrees. */
 const FRONTAGE_ANGLE_TOL_DEG = 30;
+/**
+ * How far a road centerline may sit on the lot side of a frontage edge, ft: lots deeded to the
+ * centerline wander a few feet either side of it, and a lane can run just inside the lot line
+ * (then up to half its ROW width is accepted).
+ */
+const CENTERLINE_SIDE_TOL_FT = 15;
 
 export type EdgeOverride = { index: number; edgeClass?: EdgeClass; abutsResidential?: boolean; acrossStreetFromResidential?: boolean };
 
@@ -68,8 +74,10 @@ export function classifyEdges(
     const edgeAngle = radToDeg(Math.atan2(b[1] - a[1], b[0] - a[0]));
     let road: Road | undefined;
     let bestScore = 0;
+    let roadDist = 0;
     for (const r of roads) {
       let hits = 0;
+      let dSum = 0;
       for (const t of [0.2, 0.5, 0.8]) {
         const p = lerp(a, b, t);
         const c = closestOnPolyline(p, r.centerline);
@@ -77,16 +85,22 @@ export function classifyEdges(
         const roadAngle = radToDeg(Math.atan2(seg[1][1] - seg[0][1], seg[1][0] - seg[0][0]));
         // The road must be on the OUTSIDE of the edge and roughly parallel to it.
         const toRoad = sub(c.pt, p);
+        // A lot deeded to the road centerline can sit a few feet either side of the digitized line.
         if (
           c.d <= r.rowWidthFt / 2 + ROW_MATCH_TOL_FT &&
           axisAngleDiffDeg(edgeAngle, roadAngle) <= FRONTAGE_ANGLE_TOL_DEG &&
-          dot(toRoad, out) > -1e-6
-        )
+          dot(toRoad, out) > -Math.max(CENTERLINE_SIDE_TOL_FT, r.rowWidthFt / 2)
+        ) {
           hits++;
+          dSum += dot(toRoad, out);
+        }
       }
-      if (hits >= 2 && hits > bestScore) {
-        bestScore = hits;
+      // Prefer more hits, then the closer centerline (two roads can both pass near a corner edge).
+      const score = hits >= 2 ? hits * 1000 - dSum / hits : 0;
+      if (score > bestScore) {
+        bestScore = score;
         road = r;
+        roadDist = dSum / hits; // signed: negative when the centerline runs inside the lot line
       }
     }
     const mid = lerp(a, b, 0.5);
@@ -107,6 +121,7 @@ export function classifyEdges(
       adjacentDistrictKind: adj?.kind,
       abutsResidential: !road && residential,
       acrossStreetFromResidential: !!road && residential,
+      rowInsetFt: road ? Math.max(0, Math.round((road.rowWidthFt / 2 - roadDist) * 10) / 10) : 0,
       overridden: false,
     });
   }

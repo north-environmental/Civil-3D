@@ -93,7 +93,7 @@ describe('MCP server', () => {
   it('returns readable errors: bad input, unknown object, and app not running', async () => {
     const bad: any = await client.callTool({ name: 'set_access', arguments: { network: 'truck', road: 'Main St' } });
     expect(bad.isError).toBe(true);
-    expect(text(bad)).toMatch(/no frontage on "Main St"\. Frontages: Route 72/);
+    expect(text(bad)).toMatch(/no frontage on "Main St"\. Frontages: .*Route 72/);
     const invalid: any = await client.callTool({ name: 'set_program', arguments: { buildingSf: -5 } });
     expect(invalid.isError).toBe(true);
     expect(text(invalid)).toMatch(/Invalid input for set_program/);

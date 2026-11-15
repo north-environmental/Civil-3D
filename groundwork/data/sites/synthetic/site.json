@@ -1,0 +1,607 @@
+{
+ "id": "synthetic",
+ "name": "Synthetic test site (not a real place)",
+ "address": "Synthetic test site",
+ "jurisdiction": "North Lebanon Township, Lebanon County, PA",
+ "crs": {
+  "epsg": 2272,
+  "name": "NAD83 / Pennsylvania South (ftUS)",
+  "units": "ftUS",
+  "proj4": "+proj=lcc +lat_1=40.96666666666667 +lat_2=39.93333333333333 +lat_0=39.33333333333334 +lon_0=-77.75 +x_0=600000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs"
+ },
+ "synthetic": true,
+ "parcel": {
+  "id": "synthetic-parcel-1",
+  "ring": [
+   [
+    2331730,
+    381090
+   ],
+   [
+    2332550,
+    381040
+   ],
+   [
+    2333230,
+    380930
+   ],
+   [
+    2334190,
+    381220
+   ],
+   [
+    2334170,
+    383090
+   ],
+   [
+    2331670,
+    382850
+   ]
+  ],
+  "recordAreaAc": 110
+ },
+ "zoningDistrictCode": "I-1",
+ "addressRoadName": "Heilmandale Rd",
+ "roads": [
+  {
+   "id": "road-rt72",
+   "name": "Route 72",
+   "ref": "PA 72",
+   "roadClass": "state",
+   "centerline": [
+    [
+     2334229.623,
+     380320.372
+    ],
+    [
+     2334190.373,
+     383990.269
+    ]
+   ],
+   "rowWidthFt": 60,
+   "rowAssumed": true
+  },
+  {
+   "id": "road-heilmandale",
+   "name": "Heilmandale Rd",
+   "roadClass": "local",
+   "centerline": [
+    [
+     2335063.492,
+     383200.89
+    ],
+    [
+     2330771.73,
+     382788.881
+    ]
+   ],
+   "rowWidthFt": 50,
+   "rowAssumed": true
+  },
+  {
+   "id": "road-orange",
+   "name": "Orange Ln",
+   "roadClass": "local",
+   "centerline": [
+    [
+     2331627.979,
+     383348.858
+    ],
+    [
+     2331728.864,
+     380389.555
+    ]
+   ],
+   "rowWidthFt": 50,
+   "rowAssumed": true
+  }
+ ],
+ "districts": [
+  {
+   "id": "dist-i1",
+   "code": "I-1",
+   "name": "Industrial",
+   "kind": "industrial",
+   "ring": [
+    [
+     2331705,
+     381090
+    ],
+    [
+     2332550,
+     381040
+    ],
+    [
+     2333230,
+     380930
+    ],
+    [
+     2334220,
+     381220
+    ],
+    [
+     2334199.703,
+     383117.966
+    ],
+    [
+     2331644.214,
+     382872.639
+    ]
+   ]
+  },
+  {
+   "id": "dist-res-n",
+   "code": "RES",
+   "name": "Residential (north)",
+   "kind": "residential",
+   "ring": [
+    [
+     2330151.078,
+     382729.298
+    ],
+    [
+     2335692.838,
+     383261.307
+    ],
+    [
+     2335568.609,
+     384555.358
+    ],
+    [
+     2330026.849,
+     384023.349
+    ]
+   ]
+  },
+  {
+   "id": "dist-res-w",
+   "code": "RES",
+   "name": "Residential (west)",
+   "kind": "residential",
+   "ring": [
+    [
+     2330151.078,
+     379530
+    ],
+    [
+     2331728.864,
+     379530
+    ],
+    [
+     2331705,
+     381090
+    ],
+    [
+     2331644.214,
+     382872.639
+    ],
+    [
+     2330151.078,
+     382729.298
+    ]
+   ]
+  },
+  {
+   "id": "dist-ag-s",
+   "code": "AG",
+   "name": "Agricultural",
+   "kind": "agricultural",
+   "ring": [
+    [
+     2331728.864,
+     379530
+    ],
+    [
+     2334229.623,
+     379530
+    ],
+    [
+     2334220,
+     381220
+    ],
+    [
+     2333230,
+     380930
+    ],
+    [
+     2332550,
+     381040
+    ],
+    [
+     2331705,
+     381090
+    ]
+   ]
+  },
+  {
+   "id": "dist-com-e",
+   "code": "COM",
+   "name": "Commercial",
+   "kind": "commercial",
+   "ring": [
+    [
+     2334229.623,
+     379530
+    ],
+    [
+     2335692.838,
+     379530
+    ],
+    [
+     2335692.838,
+     383261.307
+    ],
+    [
+     2334199.703,
+     383117.966
+    ],
+    [
+     2334220,
+     381220
+    ]
+   ]
+  }
+ ],
+ "constraints": [
+  {
+   "id": "wetland-1",
+   "kind": "wetland",
+   "name": "Wetland ≈ 4.8 ac",
+   "ring": [
+    [
+     2333328.179,
+     381265
+    ],
+    [
+     2333327.729,
+     381295.583
+    ],
+    [
+     2333320.001,
+     381326.384
+    ],
+    [
+     2333307.016,
+     381357.689
+    ],
+    [
+     2333286.805,
+     381389.241
+    ],
+    [
+     2333254.804,
+     381418.729
+    ],
+    [
+     2333208.045,
+     381441.851
+    ],
+    [
+     2333148.755,
+     381454.367
+    ],
+    [
+     2333084.278,
+     381454.844
+    ],
+    [
+     2333023.116,
+     381446.02
+    ],
+    [
+     2332970,
+     381433.548
+    ],
+    [
+     2332923.69,
+     381422.824
+    ],
+    [
+     2332879.096,
+     381416.014
+    ],
+    [
+     2332831.913,
+     381411.284
+    ],
+    [
+     2332782.12,
+     381404.582
+    ],
+    [
+     2332733.764,
+     381392.514
+    ],
+    [
+     2332691.581,
+     381374.187
+    ],
+    [
+     2332657.544,
+     381350.934
+    ],
+    [
+     2332630.298,
+     381324.578
+    ],
+    [
+     2332607.876,
+     381295.959
+    ],
+    [
+     2332591.167,
+     381265
+    ],
+    [
+     2332584.88,
+     381232.076
+    ],
+    [
+     2332594.825,
+     381199.201
+    ],
+    [
+     2332623.475,
+     381169.696
+    ],
+    [
+     2332667.394,
+     381146.328
+    ],
+    [
+     2332718.76,
+     381129.388
+    ],
+    [
+     2332770.008,
+     381116.42
+    ],
+    [
+     2332818.092,
+     381104.074
+    ],
+    [
+     2332865.16,
+     381090.835
+    ],
+    [
+     2332915.284,
+     381078.527
+    ],
+    [
+     2332970,
+     381071.367
+    ],
+    [
+     2333026.294,
+     381073.15
+    ],
+    [
+     2333078.568,
+     381084.642
+    ],
+    [
+     2333122.85,
+     381103.076
+    ],
+    [
+     2333159.693,
+     381124.071
+    ],
+    [
+     2333193.326,
+     381144.455
+    ],
+    [
+     2333227.772,
+     381163.91
+    ],
+    [
+     2333263.119,
+     381184.384
+    ],
+    [
+     2333295.01,
+     381207.999
+    ],
+    [
+     2333317.712,
+     381235.274
+    ]
+   ],
+   "bufferFt": 25,
+   "informational": false,
+   "source": "SYNTHETIC (generated; no network during the build); size per the 2020 Planning Commission minutes (~4.5–5 ac, south side, not to be disturbed). 25 ft no-disturb buffer is an EFCG assumption."
+  }
+ ],
+ "asBuilt": [
+  {
+   "id": "asbuilt-bldg",
+   "name": "As-built distribution center (411,840 SF)",
+   "kind": "building",
+   "ring": [
+    [
+     2332453.051,
+     381915.436
+    ],
+    [
+     2333504.218,
+     382016.348
+    ],
+    [
+     2333466.949,
+     382404.564
+    ],
+    [
+     2332415.782,
+     382303.652
+    ]
+   ],
+   "note": "SYNTHETIC (generated; no network during the build): area from the 2020 minutes; footprint shape and position are illustrative."
+  },
+  {
+   "id": "asbuilt-basin-w",
+   "name": "As-built basin (west)",
+   "kind": "basin",
+   "ring": [
+    [
+     2331880.31,
+     381507.085
+    ],
+    [
+     2332178.937,
+     381535.753
+    ],
+    [
+     2332119.69,
+     382152.915
+    ],
+    [
+     2331821.063,
+     382124.247
+    ]
+   ],
+   "note": "SYNTHETIC (generated; no network during the build): illustrative."
+  },
+  {
+   "id": "asbuilt-basin-s",
+   "name": "As-built basin (south)",
+   "kind": "basin",
+   "ring": [
+    [
+     2333457.726,
+     381238.768
+    ],
+    [
+     2333985.658,
+     381425.548
+    ],
+    [
+     2333902.274,
+     381661.232
+    ],
+    [
+     2333374.342,
+     381474.452
+    ]
+   ],
+   "note": "SYNTHETIC (generated; no network during the build): illustrative."
+  },
+  {
+   "id": "asbuilt-basin-e",
+   "name": "As-built basin (east)",
+   "kind": "basin",
+   "ring": [
+    [
+     2333865.594,
+     382269.972
+    ],
+    [
+     2334094.541,
+     382291.951
+    ],
+    [
+     2334054.406,
+     382710.028
+    ],
+    [
+     2333825.459,
+     382688.049
+    ]
+   ],
+   "note": "SYNTHETIC (generated; no network during the build): illustrative."
+  }
+ ],
+ "terrain": {
+  "x0": 2331170,
+  "y0": 380430,
+  "cellFt": 5,
+  "nx": 704,
+  "ny": 632,
+  "source": "SYNTHETIC (generated; no network during the build): ~40 ft of relief draining south toward the wetland",
+  "synthetic": true,
+  "preDevelopment": true,
+  "verticalDatum": "NAVD88 (nominal)",
+  "file": "dem.f32"
+ },
+ "imagery": {
+  "available": false,
+  "sets": [],
+  "attribution": ""
+ },
+ "neighbors": [],
+ "provenance": [
+  {
+   "layer": "parcel",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "Approximate, digitized-style placeholder: ~110 ac irregular parcel (109.6 ac). Not the recorded parcel boundary.",
+   "synthetic": true
+  },
+  {
+   "layer": "roads",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "Route 72 along the east edge, Heilmandale Rd along the north edge, Orange Ln along the west edge. Layout is a guess; ROW widths are class defaults.",
+   "synthetic": true
+  },
+  {
+   "layer": "districts",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "From the 2020 Planning Commission minutes: residential N and W, agricultural S, commercial across Route 72. Generic codes (RES/AG/COM); verify against the 2023 zoning map.",
+   "synthetic": true
+  },
+  {
+   "layer": "wetlands",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "~4.8 ac polygon on the south side, per the 2020 minutes. Not NWI data.",
+   "synthetic": true
+  },
+  {
+   "layer": "floodplain",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "No floodplain layer (FEMA NFHL not reachable).",
+   "synthetic": true
+  },
+  {
+   "layer": "terrain",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "Generated surface, ~40 ft relief, draining south. Not LiDAR. Pre-development by construction.",
+   "synthetic": true
+  },
+  {
+   "layer": "asBuilt",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "411,840 SF footprint (area from the minutes) and three basins totalling ~10 ac; shapes and positions illustrative.",
+   "synthetic": true
+  },
+  {
+   "layer": "imagery",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "None cached (USGS imagery service not reachable).",
+   "synthetic": true
+  },
+  {
+   "layer": "location",
+   "sourceUrl": "synthetic://groundwork/make-synthetic-fixture",
+   "fetchedAt": "2026-11-13T00:00:00.000Z",
+   "license": "Generated by Groundwork (no third-party data)",
+   "notes": "Anchored near lon -76.442, lat 40.3745 (approximate; not geocoded).",
+   "synthetic": true
+  }
+ ]
+}

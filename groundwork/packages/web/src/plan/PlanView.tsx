@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { Pt } from '@groundwork/core';
-import { app, useApp } from '../lib/app';
+import { type AppState, app, useApp } from '../lib/app';
 import { derived, ensureExistingContours } from './derived';
-import { type Overlay, type View, drawPlan, fitView, s2w } from './draw';
-import { drawImagery } from './imagery';
+import { type Overlay, type Scene, type View, drawPlan, fitView, s2w } from './draw';
+import { drawImagery, imagerySet } from './imagery';
 import { buildOverlays, buildUnderlays } from './overlays';
 import { ensureSurfaces, surfaces } from './surfaces';
 import { DARK, LIGHT } from './theme';
@@ -12,6 +12,42 @@ import { attachInteractions } from './interact';
 export type PlanHandle = { view: View; fit: () => void; redraw: () => void };
 
 /** Shared by the interactive view and render mode. */
+let liveView: View | null = null;
+/** The on-screen plan view (world window), for exports that should match what the user is looking at. */
+export function currentPlanView(): View | null {
+  return liveView;
+}
+
+/** Aerial underlays: the base (pre-development) photo, and the latest photo when "as built" is on. */
+function aerialUnderlays(s: AppState, redraw: () => void): Overlay[] {
+  const site = s.project?.site;
+  if (!site) return [];
+  const out: Overlay[] = [];
+  const dim = s.theme === 'light' ? 0.92 : 0.82;
+  const base = imagerySet(site, 'base');
+  const latest = imagerySet(site, 'latest');
+  if (s.layers.imagery && base) out.push((c, vw) => drawImagery(c, vw, site.id, base, redraw, dim));
+  if (s.layers.asBuilt && latest) out.push((c, vw) => drawImagery(c, vw, site.id, latest, redraw, dim));
+  return out;
+}
+
+/** Everything drawPlan needs for the current app state (shared by the live view and the PNG export). */
+export function buildScene(s: AppState, redraw: () => void): Scene {
+  const aerials = aerialUnderlays(s, redraw);
+  return {
+    project: s.project,
+    scenario: s.project?.scenarios.find((x) => x.id === s.project!.activeScenarioId) ?? null,
+    layers: s.layers,
+    palette: s.theme === 'light' ? LIGHT : DARK,
+    selection: s.selection,
+    existingContours: derived.get().existingContours,
+    underlays: [...aerials, ...buildUnderlays(s)],
+    imageryOn: aerials.length > 0,
+    overlays: buildOverlays(s),
+    showChrome: true,
+  };
+}
+
 export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: boolean; onDrawn?: () => void; bbox?: [number, number, number, number] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -54,17 +90,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
       ensureExistingContours(s.dem);
       ensureSurfaces(s);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawPlan(ctx, h.view, {
-        project: s.project,
-        scenario: s.project?.scenarios.find((x) => x.id === s.project!.activeScenarioId) ?? null,
-        layers: s.layers,
-        palette: s.theme === 'light' ? LIGHT : DARK,
-        selection: s.selection,
-        existingContours: derived.get().existingContours,
-        underlays: [...(site && s.layers.imagery ? [((c, vw) => drawImagery(c, vw, site, h.redraw)) as Overlay] : []), ...buildUnderlays(s)],
-        overlays: buildOverlays(s),
-        showChrome: true,
-      });
+      drawPlan(ctx, h.view, buildScene(s, h.redraw));
       onDrawn?.();
     };
     h.redraw = () => {
@@ -95,6 +121,7 @@ export function PlanView({ renderMode = false, onDrawn, bbox }: { renderMode?: b
     const detach = renderMode ? () => undefined : attachInteractions(canvas, h);
     h.redraw();
     (window as any).__plan = { s2w: (p: Pt) => s2w(h.view, p), view: h.view, fit: h.fit };
+    if (!renderMode) liveView = h.view;
     return () => {
       unsubA();
       unsubD();

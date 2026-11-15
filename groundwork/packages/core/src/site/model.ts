@@ -80,6 +80,12 @@ export const ParcelEdgeSchema = z.object({
   adjacentDistrictKind: DistrictKindSchema.optional(),
   abutsResidential: z.boolean(),
   acrossStreetFromResidential: z.boolean(),
+  /**
+   * Front edges only: how far the street right-of-way line sits INSIDE this lot line, ft.
+   * Rural lots are often deeded to the road centerline; yards are measured from the ROW line
+   * (centerline + half the ROW width), so this is added to every street setback on the edge.
+   */
+  rowInsetFt: z.number().min(0).default(0),
   overridden: z.boolean().default(false),
 });
 export type ParcelEdge = z.infer<typeof ParcelEdgeSchema>;
@@ -109,8 +115,31 @@ export const TerrainMetaSchema = z.object({
 });
 export type TerrainMeta = z.infer<typeof TerrainMetaSchema>;
 
+/** One cached aerial image, already warped to the site CRS (north up), covering a world rectangle. */
+export const ImageryChunkSchema = z.object({
+  file: z.string(),
+  x0: z.number(),
+  y0: z.number(),
+  x1: z.number(),
+  y1: z.number(),
+  widthPx: z.number().int().positive(),
+  heightPx: z.number().int().positive(),
+});
+export const ImagerySetSchema = z.object({
+  /** e.g. "predev" (before construction) or "current". */
+  id: z.string(),
+  label: z.string(),
+  attribution: z.string().default(''),
+  /** Ground resolution of the cached chunks, ft per pixel. */
+  ftPerPx: z.number().positive(),
+  chunks: z.array(ImageryChunkSchema),
+});
+export type ImagerySet = z.infer<typeof ImagerySetSchema>;
+
 export const ImagerySchema = z.object({
   available: z.boolean(),
+  /** Aerials cached in the site CRS (preferred). The first set is the default background. */
+  sets: z.array(ImagerySetSchema).default([]),
   /** URL template served by the app, e.g. /api/site/imagery/{z}/{x}/{y}.jpg (Web Mercator XYZ). */
   tileUrl: z.string().optional(),
   minZoom: z.number().optional(),
@@ -140,6 +169,8 @@ export const SiteFixtureSchema = z.object({
   districts: z.array(DistrictSchema),
   constraints: z.array(ConstraintSchema),
   asBuilt: z.array(AsBuiltSchema),
+  /** Neighbouring lot lines for context (drawn only; never used in calculations). */
+  neighbors: z.array(RingSchema).default([]),
   terrain: TerrainMetaSchema,
   imagery: ImagerySchema,
   provenance: z.array(ProvenanceSchema),
