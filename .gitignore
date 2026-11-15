@@ -6,8 +6,9 @@ data/raw/
 __pycache__/
 *.pyc
 
-# Viewer test output (the built viewer itself is committed)
+# Viewer test output and the publish build (it embeds a site package; rebuild with build.py)
 viewer/dist/test-output/
+viewer/dist/*-published.html
 
 # Personal Claude Code settings (launch.json is shared and committed)
 .claude/settings.local.json

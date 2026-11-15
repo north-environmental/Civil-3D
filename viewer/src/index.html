@@ -22,7 +22,7 @@
         <label class="chk"><input type="checkbox" id="cutFill" checked> Cut / fill</label>
         <label class="chk" title="Vertical exaggeration">Height x<input type="range" id="exag" min="1" max="5" step="0.5" value="1.5"><b id="exagVal">1.5</b></label>
       </div>
-      <div class="legend" id="legend" hidden>
+      <details class="legend" id="legend" open hidden><summary>Legend</summary>
         <div><i class="sw line" style="--c:#fff"></i>Property line</div>
         <div><i class="sw dash" style="--c:#f59e0b"></i>Building setback</div>
         <div><i class="sw dash" style="--c:#a3e635"></i>Parking setback</div>
@@ -31,18 +31,19 @@
         <div><i class="sw fill" style="--c:#2dd4bf"></i>Wetland (NWI)</div>
         <div class="cf"><i class="sw fill" style="--c:#e13c2d"></i>Cut <i class="sw fill" style="--c:#286eeb"></i>Fill <i class="sw fill" style="--c:#ffe628"></i>Wall</div>
         <div class="hint">Drag to orbit &middot; right-drag or Shift-drag to pan &middot; wheel to zoom</div>
-      </div>
+      </details>
       <div class="empty" id="emptyState">
         <h1>Load a site package to begin</h1>
         <p>Click <b>Load site package</b> and choose a <code>.sitepkg.json</code> file from the project's <code>sites</code> folder.</p>
       </div>
+      <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
       <div class="busy" id="busy" hidden><div class="spinner"></div><span id="busyText">Working&hellip;</span></div>
     </section>
     <aside class="panel">
       <nav class="tabs" id="tabs">
+        <button data-tab="chat" id="chatTabBtn" hidden>Chat</button>
         <button data-tab="design" class="active">Design</button>
         <button data-tab="site">Site</button>
-        <button data-tab="chat" id="chatTabBtn" hidden>Chat</button>
         <button data-tab="test" id="testTabBtn" hidden>Test</button>
       </nav>
       <div class="tab-body" id="tab-design"></div>

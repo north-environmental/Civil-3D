@@ -30,6 +30,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--embed", help="site package to build into the page")
     ap.add_argument("--out", default=os.path.join(HERE, "dist", "land-viewer.html"))
+    ap.add_argument("--artifact", action="store_true", help="write the page body only, for publishing as a Claude artifact")
     a = ap.parse_args(argv)
 
     html = read("index.html")
@@ -53,10 +54,14 @@ def main(argv=None):
         embedded = '<script type="application/json" id="embedded-site-package">' + pkg.replace("</", "<\\/") + "</script>"
 
     body = html.replace("<!-- EMBEDDED -->", embedded).replace("<!-- SCRIPTS -->", js)
-    out = ("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
-           "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-           "<title>Land Development Viewer</title>\n"
-           f"<style>\n{css}\n</style></head>\n<body>\n{body}\n</body></html>\n")
+    if a.artifact:
+        # Claude artifacts wrap the page in their own <!doctype>/<head>/<body> skeleton.
+        out = f"<title>Land Development Viewer</title>\n<style>\n{css}\n</style>\n{body}\n"
+    else:
+        out = ("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
+               "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+               "<title>Land Development Viewer</title>\n"
+               f"<style>\n{css}\n</style></head>\n<body>\n{body}\n</body></html>\n")
     size = len(out.encode("utf-8"))
     if size > MAX_BYTES:
         print(f"BUILD FAILED: {size / 1e6:.1f} MB is over the 16 MB artifact limit. Use a smaller package (--max-mb when packaging).")

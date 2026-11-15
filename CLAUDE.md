@@ -47,4 +47,7 @@ This repo holds a **land development demo app** for EFCG client executives. It h
 ## Handy commands
 - Set up Python (one time, after the owner approves the installs): `setup.cmd`
 - Make a package: `package "1625 Heilmandale Rd, North Lebanon Township, PA"`
-- Build the viewer: `python viewer/build.py`
+- Build the viewer: `.venv\Scripts\python.exe viewer\build.py`
+- Build the publish version: `.venv\Scripts\python.exe viewer\build.py --artifact --embed sites\1625-heilmandale-rd\1625-heilmandale-rd.sitepkg.json --out viewer\dist\land-viewer-published.html`
+- Published viewer (private Claude artifact, capability `sample`): https://claude.ai/artifact/MnZnaVtaaEC33CiXJbL8Ek. Always republish to this same link; don't create a new one.
+- Published pages can't use `alert()`/`confirm()`/`prompt()`. Use in-page messages (`LD.ui.toast`) and two-click confirmations instead.

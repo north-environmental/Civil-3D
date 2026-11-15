@@ -11,6 +11,16 @@
     if (text) $('busyText').textContent = text;
   }
 
+  /** In-page message (published artifacts cannot show alert/confirm dialogs). */
+  UI.toast = function (text, kind) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + (kind || '');
+    t.innerHTML = `<span>${esc(text)}</span><button class="btn link" aria-label="Dismiss">✕</button>`;
+    t.querySelector('button').onclick = () => t.remove();
+    $('toasts').appendChild(t);
+    if (kind !== 'err') setTimeout(() => t.remove(), 6000);
+  };
+
   UI.loadPackageObject = function (pkg, label) {
     const site = LD.site.load(pkg);
     app.setSite(site);
@@ -30,7 +40,7 @@
       try {
         UI.loadPackageObject(JSON.parse(text), label);
       } catch (e) {
-        alert('Could not open that file.\n\n' + (e.userMessage || (e instanceof SyntaxError ? 'It is not valid JSON.' : e.message)));
+        UI.toast('Could not open that file. ' + (e.userMessage || (e instanceof SyntaxError ? 'It is not a valid site package (not JSON).' : e.message)), 'err');
         console.error(e);
       } finally { busy(false); }
     }, 30);
@@ -43,7 +53,7 @@
       if (!f) return;
       const r = new FileReader();
       r.onload = () => loadText(r.result, f.name);
-      r.onerror = () => alert('Could not read that file.');
+      r.onerror = () => UI.toast('Could not read that file.', 'err');
       r.readAsText(f);
       e.target.value = '';
     };
@@ -54,7 +64,7 @@
     else if (q && !/^[a-z]+:/i.test(q) && !q.startsWith('//')) {
       busy(true, 'Loading ' + q + '…');
       fetch(q).then((r) => (r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))).then((t) => loadText(t, null))
-        .catch((e) => { busy(false); alert('Could not load ' + q + ': ' + e.message); });
+        .catch((e) => { busy(false); UI.toast('Could not load ' + q + ': ' + e.message, 'err'); });
     }
   }
 
@@ -72,7 +82,7 @@
     if (!app.site) { el.innerHTML = '<p class="muted">No site loaded.</p>'; return; }
     const st = app.state;
     let h = '<h2>Elements</h2>';
-    if (!st.elements.length) h += '<p class="muted small">Nothing placed yet. Turn on <b>Test mode</b> (top right) to add a building or parking with the command buttons' + (LD.chat ? ', or ask Claude in the Chat tab' : '') + '.</p>';
+    if (!st.elements.length) h += '<p class="muted small">Nothing placed yet. Turn on <b>Test mode</b> (top right) to add a building or parking with the command buttons' + (LD.chat && LD.chat.status === 'ready' ? ', or ask Claude in the Chat tab' : '') + '.</p>';
     for (const e of st.elements) {
       const d = LD.commands.describeEl(e);
       if (e.type === 'building') {
@@ -120,14 +130,24 @@
       h += `<div class="hist"><span class="src">${esc(e.source)}</span><div class="txt"><b>${esc(e.title)}</b> — ${esc(e.summary)}</div>
         <button class="btn small" data-undo="${e.seq}" title="Undo this step (and anything after it)">Undo</button></div>`;
     el.innerHTML = h;
-    for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => UI.undo(Number(b.dataset.undo));
+    for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => UI.undoButton(b, Number(b.dataset.undo));
   }
 
-  UI.undo = function (seq) {
+  /** Undo with an in-page confirmation: when later steps would also be undone, the first click arms the button. */
+  UI.undoButton = function (btn, seq) {
     const later = app.history.filter((h) => h.seq > seq).length;
-    if (later && !confirm(`Undoing this step also undoes the ${later} step${later > 1 ? 's' : ''} after it. Continue?`)) return false;
+    if (later && btn.dataset.armed !== '1') {
+      btn.dataset.armed = '1';
+      btn.textContent = `Also undoes ${later} later step${later > 1 ? 's' : ''}. Click again`;
+      setTimeout(() => { if (btn.isConnected) { btn.dataset.armed = ''; btn.textContent = 'Undo'; } }, 5000);
+      return false;
+    }
+    return UI.undo(seq);
+  };
+  UI.undo = function (seq) {
     const r = LD.commands.undoTo(seq);
-    if (!r.ok) alert(r.error);
+    if (!r.ok) UI.toast(r.error, 'err');
+    else if (LD.chat) LD.chat.notes.push('The user pressed Undo in the History list; ' + r.undone + ' step(s) were rolled back. The current site state reflects this.');
     return r.ok;
   };
 
@@ -279,6 +299,7 @@
       $('testTabBtn').hidden = !UI.testMode;
       if (UI.testMode) { renderTest(); showTab('test'); } else if (UI.activeTab === 'test') showTab('design');
     };
+    if (window.matchMedia && matchMedia('(max-width: 800px)').matches) $('legend').open = false;
     $('resetView').onclick = () => LD.view.resetView();
     $('topView').onclick = () => LD.view.topView();
     $('baseLayer').onchange = (e) => { LD.view.baseLayer = e.target.value; LD.view.refresh(); };

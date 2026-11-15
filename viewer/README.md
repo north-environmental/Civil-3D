@@ -21,6 +21,26 @@ All the engineering math is done by the viewer's own code, whether you use the T
 - **Aerial photo / Shaded relief** switches what's drawn on the ground.
 - **Height x** exaggerates the hills so slopes are easier to see. Numbers are never exaggerated.
 
+## Chat with Claude (published version)
+
+The chat panel uses the Claude artifact **Ask Claude** feature (the `sample` capability). There is no API key.
+
+- **Where it works:** chat only works in the published artifact. In the plain file, the Chat tab says so, and Test mode runs the same commands.
+- **Published link:** https://claude.ai/artifact/MnZnaVtaaEC33CiXJbL8Ek (private until you share it from the page's Share menu).
+- **First message:** Claude asks you to allow the page to use Claude. Each message uses your own Claude usage.
+- **What each message sends:** the standing instructions, the current site state (parcel, zoning, buildable area, elements, latest results), and the conversation so far. The commands go along as tools.
+- **What Claude can do:** change the design only by calling those tools, and report only the numbers the app returns.
+- **Action cards:** every action Claude takes appears in the chat with **Undo**. When you undo, Claude is told about it with your next message.
+- **Speed:** **Thorough** (default) thinks longer. **Fast** replies quickly; it's good for simple moves.
+
+### Re-publish after changes
+
+```
+.venv\Scripts\python.exe viewer\build.py --artifact --embed sites\1625-heilmandale-rd\1625-heilmandale-rd.sitepkg.json --out viewer\dist\land-viewer-published.html
+```
+
+Then ask Claude Code to publish `viewer/dist/land-viewer-published.html` to the link above, with the `sample` capability. The publish file is not committed, because it contains a copy of the site package.
+
 ## The commands
 
 These are exactly the tools Claude gets in the chat panel (Phase 4).
