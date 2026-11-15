@@ -1,0 +1,2470 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Land Development Viewer</title>
+<style>
+:root {
+  --bg: #111418; --bg2: #171b21; --bg3: #1f252d; --line: #2b323c; --text: #e6e8eb; --muted: #9aa3ad;
+  --accent: #f59e0b; --accent2: #38bdf8; --ok: #22c55e; --bad: #ef4444; --warn: #eab308;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+button, select, input, textarea { font: inherit; color: inherit; }
+
+.topbar { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: var(--bg2); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { font-weight: 600; letter-spacing: .2px; white-space: nowrap; }
+.logo { color: var(--accent); }
+.site-name { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.spacer { flex: 1; }
+.tag { font-size: 11px; color: var(--warn); border: 1px solid #5c4a10; background: #2a230b; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.btn { background: var(--bg3); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { border-color: #46505c; background: #262d36; }
+.btn.primary { background: #b45309; border-color: #d97706; color: #fff; }
+.btn.primary:hover { background: #c2620a; }
+.btn.small { padding: 3px 9px; font-size: 12px; }
+.btn.link { background: none; border: none; color: var(--accent2); padding: 0 4px; }
+.btn:disabled { opacity: .5; cursor: default; }
+select.small { background: var(--bg3); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 12px; }
+.toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+
+main { flex: 1; display: flex; min-height: 0; }
+.viewport { position: relative; flex: 1; min-width: 0; background: #0c0f12; overflow: hidden; }
+canvas.gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+canvas.gl:active { cursor: grabbing; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.label { position: absolute; transform: translate(-50%, -100%); font-size: 12px; padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+  background: rgba(17,20,24,.82); border: 1px solid #3a434e; }
+.label.parking { color: #cbd5e1; }
+.view-tools { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  background: rgba(23,27,33,.9); border: 1px solid var(--line); padding: 6px 8px; border-radius: 8px; z-index: 2; font-size: 12px; }
+.chk { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.chk input[type=range] { width: 80px; }
+.legend { position: absolute; left: 10px; bottom: 10px; background: rgba(23,27,33,.9); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; z-index: 2; display: grid; gap: 3px; }
+.legend .hint { color: var(--muted); margin-top: 4px; font-size: 11px; }
+.sw { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; }
+.sw.line { border-top: 3px solid var(--c); }
+.sw.dash { border-top: 3px dashed var(--c); }
+.sw.fill { height: 10px; background: var(--c); opacity: .8; border-radius: 2px; }
+.legend .cf .sw { margin-left: 2px; }
+.empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--muted); }
+.empty h1 { color: var(--text); font-weight: 500; font-size: 22px; margin: 0 0 8px; }
+.busy { position: absolute; inset: 0; background: rgba(12,15,18,.7); display: flex; align-items: center; justify-content: center; gap: 12px; z-index: 5; }
+.spinner { width: 22px; height: 22px; border: 3px solid #444; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.panel { width: 420px; max-width: 46vw; display: flex; flex-direction: column; background: var(--bg2); border-left: 1px solid var(--line); min-height: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: none; padding: 10px 6px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab-body { flex: 1; overflow: auto; padding: 12px 14px 24px; min-height: 0; }
+.tab-body h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
+.tab-body h2:first-child { margin-top: 2px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.num { font-family: var(--mono); text-align: right; white-space: nowrap; }
+table.kv, table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.kv td { padding: 3px 0; vertical-align: top; }
+table.kv td:first-child { color: var(--muted); padding-right: 10px; width: 46%; }
+table.grid th, table.grid td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.grid th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.card { background: var(--bg3); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.card.stale { opacity: .6; }
+.card h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
+.pill.ok { color: var(--ok); border-color: #1d5c35; } .pill.bad { color: var(--bad); border-color: #6b2222; } .pill.warn { color: var(--warn); border-color: #5c4a10; }
+.big { font-size: 20px; font-family: var(--mono); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0; }
+.stats div { background: var(--bg2); border-radius: 6px; padding: 6px 8px; }
+.stats b { display: block; font-family: var(--mono); font-size: 15px; font-weight: 500; }
+.stats span { font-size: 11px; color: var(--muted); }
+ul.warn { margin: 4px 0; padding-left: 18px; font-size: 13px; }
+ul.warn li { margin-bottom: 4px; }
+.pass { color: var(--ok); } .fail { color: var(--bad); } .info { color: var(--warn); }
+.hist { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.hist .src { font-size: 10px; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-top: 2px; }
+.hist .txt { flex: 1; }
+
+form.cmd { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin: 6px 0 8px; }
+form.cmd label { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); gap: 2px; }
+form.cmd input, form.cmd select { background: var(--bg2); border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; font-size: 13px; color: var(--text); }
+form.cmd .full { grid-column: 1 / -1; }
+.result { font-size: 13px; padding: 8px 10px; border-radius: 6px; margin-top: 6px; white-space: pre-wrap; }
+.result.ok { background: #0f2a1a; border: 1px solid #1d5c35; }
+.result.err { background: #2c1212; border: 1px solid #6b2222; }
+details { margin-top: 4px; font-size: 12px; }
+details pre { max-height: 220px; overflow: auto; background: var(--bg); padding: 8px; border-radius: 6px; font-family: var(--mono); font-size: 11px; }
+
+@media (max-width: 800px) {
+  main { flex-direction: column; }
+  .viewport { min-height: 55vh; }
+  .panel { width: 100%; max-width: none; border-left: none; border-top: 1px solid var(--line); }
+  .tag { display: none; }
+}
+
+</style></head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="logo">&#9650;</span> Land Development Viewer</div>
+    <div class="site-name" id="siteName">No site loaded</div>
+    <div class="spacer"></div>
+    <button id="loadBtn" class="btn primary">Load site package</button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    <label class="toggle" title="Show a button for each command so you can test without the chat">
+      <input type="checkbox" id="testToggle"> <span>Test mode</span>
+    </label>
+    <span class="tag">Concept-level, not for construction</span>
+  </header>
+  <main>
+    <section class="viewport" id="viewport">
+      <div class="view-tools" id="viewTools" hidden>
+        <button class="btn small" id="resetView" title="Back to the starting view">Reset view</button>
+        <button class="btn small" id="topView" title="Look straight down">Top view</button>
+        <select id="baseLayer" class="small" title="What is drawn on the ground">
+          <option value="aerial">Aerial photo</option>
+          <option value="relief">Shaded relief</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="cutFill" checked> Cut / fill</label>
+        <label class="chk" title="Vertical exaggeration">Height x<input type="range" id="exag" min="1" max="5" step="0.5" value="1.5"><b id="exagVal">1.5</b></label>
+      </div>
+      <div class="legend" id="legend" hidden>
+        <div><i class="sw line" style="--c:#fff"></i>Property line</div>
+        <div><i class="sw dash" style="--c:#f59e0b"></i>Building setback</div>
+        <div><i class="sw dash" style="--c:#a3e635"></i>Parking setback</div>
+        <div><i class="sw line" style="--c:#facc15"></i>Road centerline</div>
+        <div><i class="sw line" style="--c:#4ea8ff"></i>Stream</div>
+        <div><i class="sw fill" style="--c:#2dd4bf"></i>Wetland (NWI)</div>
+        <div class="cf"><i class="sw fill" style="--c:#e13c2d"></i>Cut <i class="sw fill" style="--c:#286eeb"></i>Fill <i class="sw fill" style="--c:#ffe628"></i>Wall</div>
+        <div class="hint">Drag to orbit &middot; right-drag or Shift-drag to pan &middot; wheel to zoom</div>
+      </div>
+      <div class="empty" id="emptyState">
+        <h1>Load a site package to begin</h1>
+        <p>Click <b>Load site package</b> and choose a <code>.sitepkg.json</code> file from the project's <code>sites</code> folder.</p>
+      </div>
+      <div class="busy" id="busy" hidden><div class="spinner"></div><span id="busyText">Working&hellip;</span></div>
+    </section>
+    <aside class="panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="design" class="active">Design</button>
+        <button data-tab="site">Site</button>
+        <button data-tab="chat" id="chatTabBtn" hidden>Chat</button>
+        <button data-tab="test" id="testTabBtn" hidden>Test</button>
+      </nav>
+      <div class="tab-body" id="tab-design"></div>
+      <div class="tab-body" id="tab-site" hidden></div>
+      <div class="tab-body" id="tab-chat" hidden></div>
+      <div class="tab-body" id="tab-test" hidden></div>
+    </aside>
+  </main>
+</div>
+
+<script>/* core.js */
+/* core.js: shared geometry, grid and formatting helpers. Plain JavaScript, no libraries.
+ * Coordinates are EPSG:2272 (PA South State Plane, US survey feet). A "ring" is [[x,y],...] with the
+ * first point not repeated; outer rings are counter-clockwise. A "region" is a list of rings (even-odd).
+ * Ported from groundwork/packages/core/src/geometry (basic.ts, grid.ts).
+ */
+'use strict';
+var LD = (window.LD = window.LD || {});
+
+(function () {
+  const G = {};
+
+  G.signedArea = function (r) {
+    let a = 0;
+    for (let i = 0, n = r.length; i < n; i++) {
+      const p = r[i], q = r[(i + 1) % n];
+      a += p[0] * q[1] - q[0] * p[1];
+    }
+    return a / 2;
+  };
+  G.area = (r) => Math.abs(G.signedArea(r));
+  G.ensureCCW = (r) => (G.signedArea(r) < 0 ? r.slice().reverse() : r);
+  G.polyArea = (poly) => G.area(poly.outer) - (poly.holes || []).reduce((s, h) => s + G.area(h), 0);
+
+  G.centroid = function (r) {
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0, n = r.length; i < n; i++) {
+      const p = r[i], q = r[(i + 1) % n];
+      const k = p[0] * q[1] - q[0] * p[1];
+      a += k; cx += (p[0] + q[0]) * k; cy += (p[1] + q[1]) * k;
+    }
+    if (Math.abs(a) < 1e-9) return r[0].slice();
+    return [cx / (3 * a), cy / (3 * a)];
+  };
+
+  G.pointInRing = function (p, r) {
+    let inside = false;
+    for (let i = 0, n = r.length, j = n - 1; i < n; j = i++) {
+      const a = r[i], b = r[j];
+      if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    return inside;
+  };
+  G.pointInRegion = function (p, region) {
+    let inside = false;
+    for (const r of region) if (G.pointInRing(p, r)) inside = !inside;
+    return inside;
+  };
+  G.pointInPoly = (p, poly) => G.pointInRegion(p, [poly.outer, ...(poly.holes || [])]);
+
+  /** Distance from point p to segment ab. */
+  G.segDist = function (p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const l2 = dx * dx + dy * dy;
+    let t = l2 > 0 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    return Math.hypot(a[0] + dx * t - p[0], a[1] + dy * t - p[1]);
+  };
+  function orient(a, b, c) {
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  }
+  G.segsCross = function (a, b, c, d) {
+    const o1 = orient(a, b, c), o2 = orient(a, b, d), o3 = orient(c, d, a), o4 = orient(c, d, b);
+    return o1 * o2 < 0 && o3 * o4 < 0;
+  };
+  G.segSegDist = function (a, b, c, d) {
+    if (G.segsCross(a, b, c, d)) return 0;
+    return Math.min(G.segDist(a, c, d), G.segDist(b, c, d), G.segDist(c, a, b), G.segDist(d, a, b));
+  };
+  /** Shortest distance between a closed ring and a segment (0 if they touch or cross). */
+  G.ringSegDist = function (r, a, b) {
+    let best = Infinity;
+    for (let i = 0, n = r.length; i < n; i++) best = Math.min(best, G.segSegDist(r[i], r[(i + 1) % n], a, b));
+    return best;
+  };
+  G.ringsTouch = function (r1, r2) {
+    for (let i = 0; i < r1.length; i++)
+      for (let j = 0; j < r2.length; j++)
+        if (G.segsCross(r1[i], r1[(i + 1) % r1.length], r2[j], r2[(j + 1) % r2.length])) return true;
+    return G.pointInRing(r1[0], r2) || G.pointInRing(r2[0], r1);
+  };
+  /** True when every vertex of `inner` is inside the polygon and no edges cross. */
+  G.ringInsidePoly = function (inner, poly) {
+    const rings = [poly.outer, ...(poly.holes || [])];
+    for (const p of inner) if (!G.pointInRegion(p, rings)) return false;
+    for (const r of rings)
+      for (let i = 0; i < inner.length; i++)
+        for (let j = 0; j < r.length; j++)
+          if (G.segsCross(inner[i], inner[(i + 1) % inner.length], r[j], r[(j + 1) % r.length])) return false;
+    return true;
+  };
+
+  /** Local frame: u along angleDeg (CCW from east), v 90 deg to its left. */
+  G.toWorld = (f, uv) => {
+    const c = Math.cos((f.angleDeg * Math.PI) / 180), s = Math.sin((f.angleDeg * Math.PI) / 180);
+    return [f.origin[0] + uv[0] * c - uv[1] * s, f.origin[1] + uv[0] * s + uv[1] * c];
+  };
+  G.frameRect = (f, u0, v0, u1, v1) => [G.toWorld(f, [u0, v0]), G.toWorld(f, [u1, v0]), G.toWorld(f, [u1, v1]), G.toWorld(f, [u0, v1])];
+  /** Rectangle centred on (cx, cy): widthFt along the rotated x axis, depthFt across it. CCW. */
+  G.rectRing = (cx, cy, widthFt, depthFt, rotDeg) =>
+    G.frameRect({ origin: [cx, cy], angleDeg: rotDeg || 0 }, -widthFt / 2, -depthFt / 2, widthFt / 2, depthFt / 2);
+
+  G.bbox = function (rings) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rings) for (const p of r) {
+      if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+      if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+    }
+    return { minX, minY, maxX, maxY };
+  };
+
+  /** Distance from p to the nearest edge of a polygon (outer + holes). */
+  G.distToBoundary = function (p, poly) {
+    let d = Infinity;
+    for (const r of [poly.outer, ...(poly.holes || [])])
+      for (let i = 0; i < r.length; i++) d = Math.min(d, G.segDist(p, r[i], r[(i + 1) % r.length]));
+    return d;
+  };
+  /** A point well inside a polygon (approximate pole of inaccessibility, coarse-to-fine grid search). */
+  G.innerPoint = function (poly) {
+    const b = G.bbox([poly.outer]);
+    let best = null, bestD = -1;
+    let step = Math.max(b.maxX - b.minX, b.maxY - b.minY) / 40;
+    let cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2, half = Math.max(b.maxX - b.minX, b.maxY - b.minY) / 2;
+    for (let pass = 0; pass < 4; pass++) {
+      for (let x = cx - half; x <= cx + half; x += step)
+        for (let y = cy - half; y <= cy + half; y += step) {
+          const p = [x, y];
+          if (!G.pointInPoly(p, poly)) continue;
+          const d = G.distToBoundary(p, poly);
+          if (d > bestD) { bestD = d; best = p; }
+        }
+      if (!best) break;
+      cx = best[0]; cy = best[1]; half = step * 2; step = step / 5;
+    }
+    return best || G.centroid(poly.outer);
+  };
+
+  LD.geom = G;
+
+  // ------------------------------------------------------------------------------------------------
+  // Grids: cell (i, j) centre at (x0 + (i + 0.5)·cellFt, y0 + (j + 0.5)·cellFt); j grows to the north.
+  // ------------------------------------------------------------------------------------------------
+  const Grid = {};
+  Grid.sample = function (g, x, y) {
+    const fx = (x - g.x0) / g.cellFt - 0.5, fy = (y - g.y0) / g.cellFt - 0.5;
+    let i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    if (i0 < 0) { i0 = 0; tx = 0; } else if (i0 >= g.nx - 1) { i0 = Math.max(0, g.nx - 2); tx = g.nx > 1 ? 1 : 0; }
+    if (j0 < 0) { j0 = 0; ty = 0; } else if (j0 >= g.ny - 1) { j0 = Math.max(0, g.ny - 2); ty = g.ny > 1 ? 1 : 0; }
+    const i1 = Math.min(g.nx - 1, i0 + 1), j1 = Math.min(g.ny - 1, j0 + 1), d = g.data;
+    return d[j0 * g.nx + i0] * (1 - tx) * (1 - ty) + d[j0 * g.nx + i1] * tx * (1 - ty) + d[j1 * g.nx + i0] * (1 - tx) * ty + d[j1 * g.nx + i1] * tx * ty;
+  };
+  Grid.make = (spec) => Object.assign({}, spec, { data: new Float32Array(spec.nx * spec.ny) });
+  Grid.specForBBox = function (b, cellFt) {
+    const x0 = Math.floor(b.minX / cellFt) * cellFt, y0 = Math.floor(b.minY / cellFt) * cellFt;
+    return { x0, y0, cellFt, nx: Math.max(1, Math.ceil((b.maxX - x0) / cellFt)), ny: Math.max(1, Math.ceil((b.maxY - y0) / cellFt)) };
+  };
+  Grid.resample = function (src, spec) {
+    const out = Grid.make(spec);
+    for (let j = 0; j < spec.ny; j++) {
+      const y = spec.y0 + (j + 0.5) * spec.cellFt;
+      for (let i = 0; i < spec.nx; i++) out.data[j * spec.nx + i] = Grid.sample(src, spec.x0 + (i + 0.5) * spec.cellFt, y);
+    }
+    return out;
+  };
+  /** Calls visit(i, j) for every cell whose CENTRE is inside the region (even-odd scanline). */
+  Grid.forEachCellInRegion = function (g, region, visit) {
+    if (!region.length) return;
+    let minY = Infinity, maxY = -Infinity;
+    for (const r of region) for (const p of r) { if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1]; }
+    const j0 = Math.max(0, Math.floor((minY - g.y0) / g.cellFt - 0.5));
+    const j1 = Math.min(g.ny - 1, Math.ceil((maxY - g.y0) / g.cellFt - 0.5));
+    const xs = [];
+    for (let j = j0; j <= j1; j++) {
+      const y = g.y0 + (j + 0.5) * g.cellFt;
+      xs.length = 0;
+      for (const r of region)
+        for (let k = 0, n = r.length, m = n - 1; k < n; m = k++) {
+          const a = r[k], b = r[m];
+          if ((a[1] > y) !== (b[1] > y)) xs.push(a[0] + ((y - a[1]) * (b[0] - a[0])) / (b[1] - a[1]));
+        }
+      if (xs.length < 2) continue;
+      xs.sort((p, q) => p - q);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        const ia = Math.max(0, Math.ceil((xs[k] - g.x0) / g.cellFt - 0.5));
+        const ib = Math.min(g.nx - 1, Math.floor((xs[k + 1] - g.x0) / g.cellFt - 0.5 - 1e-9));
+        for (let i = ia; i <= ib; i++) visit(i, j);
+      }
+    }
+  };
+  Grid.rasterize = function (g, region) {
+    const mask = new Uint8Array(g.nx * g.ny);
+    Grid.forEachCellInRegion(g, region, (i, j) => { mask[j * g.nx + i] = 1; });
+    return mask;
+  };
+  /** Mean of grid values over the cells inside a ring. */
+  Grid.meanInRing = function (g, ring) {
+    let s = 0, n = 0;
+    Grid.forEachCellInRegion(g, [ring], (i, j) => {
+      const v = g.data[j * g.nx + i];
+      if (Number.isFinite(v)) { s += v; n++; }
+    });
+    if (!n) { const c = G.centroid(ring); return Grid.sample(g, c[0], c[1]); }
+    return s / n;
+  };
+  LD.grid = Grid;
+
+  LD.units = { CF_PER_CY: 27, SF_PER_AC: 43560, FTUS_PER_M: 3937 / 1200 };
+
+  const nf = (d) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  LD.fmt = {
+    n: (v, d = 0) => (v == null || !Number.isFinite(v) ? 'n/a' : nf(d).format(v)),
+    ft: (v, d = 1) => LD.fmt.n(v, d) + ' ft',
+    sf: (v) => LD.fmt.n(v, 0) + ' SF',
+    ac: (v, d = 2) => LD.fmt.n(v, d) + ' ac',
+    cy: (v) => LD.fmt.n(v, 0) + ' CY',
+    esc: (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+  };
+  LD.round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+})();
+
+</script>
+<script>/* grading.js */
+/* grading.js: concept-level earthwork engine (grid method). Pure, deterministic.
+ * Ported line-for-line from groundwork/packages/core/src/grading/engine.ts, which is checked against
+ * hand calculations T1-T6 (see selfcheck.js).
+ *
+ * - A grading object sets finished grade inside its footprint: z = z0(x,y) + k(x,y) * FFE.
+ * - Overlaps resolve by priority (pad > truck court > drive > parking > basin).
+ * - Outside all footprints the ground ties back to existing at H:V = s:1. For each outside cell, d is the
+ *   distance from the cell centre to each object's boundary:
+ *       L = max(z_i - d_i/s),  U = min(z_i + d_i/s),  proposed = clamp(existing, L, U)
+ *   Where L > U the objects are too close to tie together: a retaining wall takes up the difference.
+ * - Earthwork = sum over cells of (subgrade - existing) x cell area, split into cut and fill.
+ */
+'use strict';
+(function () {
+  const G = LD.geom, Grid = LD.grid;
+
+  /** Grading defaults (EFCG). Source: groundwork/packages/core/src/criteria/grading.ts. */
+  const CRITERIA = {
+    tieInSlopeHtoV: 3,            // daylight slope back to existing ground, 3:1 max
+    padOverbuildFt: 10,           // building pad beyond the footprint
+    parkingSlopePct: 1.5,         // parking field design slope (1.0-4.0% allowed; ADA-friendly)
+    sectionBuildingSlabFt: 1.17,  // finished floor -> subgrade: 8 in concrete + 6 in stone
+    sectionStandardAsphaltFt: 1.0,// car parking pavement section
+    shrinkPct: 10,                // cut shrink: net = cut x (1 - shrink) - fill
+    gridCellFt: 5,                // grading grid cell
+    offsiteToleranceFt: 0.1,      // |proposed - existing| beyond this outside the parcel = offsite grading
+    minWallHeightFt: 1.0,         // walls lower than this are ignored (curbs / kneewalls)
+  };
+  const PRIORITY = { pad: 5, truckCourt: 4, drive: 3, parking: 2, basin: 1 };
+  const CATEGORIES = ['pad', 'truckCourt', 'parking', 'drive', 'basin', 'tieIn'];
+  const PIECE = 9;
+
+  function flatPad(id, ring, o) {
+    const fixed = o.elevFt !== undefined && o.elevFt !== null;
+    const z0 = fixed ? o.elevFt : o.ffeOffsetFt || 0;
+    const k = fixed ? 0 : 1;
+    const sec = o.sectionFt || 0;
+    return {
+      id, name: o.name || id, category: o.category || 'pad', priority: o.priority || PRIORITY.pad,
+      region: [G.ensureCCW(ring)],
+      surface: (_x, _y, out) => { out[0] = z0; out[1] = k; },
+      sectionFt: () => sec,
+    };
+  }
+
+  /** A plane falling at slopePct in direction dirDeg (CCW from east) from origin. */
+  function planarPad(id, ring, o) {
+    const r = (o.dirDeg * Math.PI) / 180, dx = Math.cos(r), dy = Math.sin(r), g = o.slopePct / 100;
+    const fixed = o.elevAtOriginFt !== undefined && o.elevAtOriginFt !== null;
+    const base = fixed ? o.elevAtOriginFt : o.ffeOffsetFt || 0;
+    const k = fixed ? 0 : 1;
+    const sec = o.sectionFt || 0;
+    return {
+      id, name: o.name || id, category: o.category || 'parking', priority: o.priority || PRIORITY.parking,
+      region: [G.ensureCCW(ring)],
+      surface: (x, y, out) => { out[0] = base - g * ((x - o.origin[0]) * dx + (y - o.origin[1]) * dy); out[1] = k; },
+      sectionFt: () => sec,
+    };
+  }
+
+  function makeModel(opts) {
+    const g = opts.existing;
+    const spec = { x0: g.x0, y0: g.y0, cellFt: g.cellFt, nx: g.nx, ny: g.ny };
+    const n = g.nx * g.ny;
+    const owner = new Int16Array(n).fill(-1);
+    const z0 = new Float32Array(n), k = new Float32Array(n), section = new Float32Array(n);
+    const objects = opts.objects;
+    const order = objects.map((_, i) => i).sort((a, b) => objects[a].priority - objects[b].priority);
+    const out = new Float64Array(2);
+    const sections = opts.sections !== undefined ? opts.sections : true;
+    for (const idx of order) {
+      const o = objects[idx];
+      Grid.forEachCellInRegion(spec, o.region, (i, j) => {
+        const c = j * g.nx + i;
+        const x = g.x0 + (i + 0.5) * g.cellFt, y = g.y0 + (j + 0.5) * g.cellFt;
+        o.surface(x, y, out);
+        owner[c] = idx; z0[c] = out[0]; k[c] = out[1];
+        section[c] = sections ? o.sectionFt(x, y) : 0;
+      });
+    }
+    // Boundary pieces for the tie-in, skipping edges that face another object (interior joints).
+    const daylight = opts.daylight !== undefined ? opts.daylight : true;
+    const data = [];
+    if (daylight) {
+      const maxLen = Math.max(15, 3 * g.cellFt);
+      const probe = Math.max(0.75, g.cellFt * 0.6);
+      for (let oi = 0; oi < objects.length; oi++) {
+        const o = objects[oi];
+        for (const ring of o.region) {
+          const m = ring.length;
+          for (let e = 0; e < m; e++) {
+            const a = ring[e], b = ring[(e + 1) % m];
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            if (len < 1e-6) continue;
+            const parts = Math.max(1, Math.ceil(len / maxLen));
+            const nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len; // outward (right of travel on CCW)
+            for (let p = 0; p < parts; p++) {
+              const ax = a[0] + ((b[0] - a[0]) * p) / parts, ay = a[1] + ((b[1] - a[1]) * p) / parts;
+              const bx = a[0] + ((b[0] - a[0]) * (p + 1)) / parts, by = a[1] + ((b[1] - a[1]) * (p + 1)) / parts;
+              const mx = (ax + bx) / 2 + nx * probe, my = (ay + by) / 2 + ny * probe;
+              let covered = false;
+              for (let q = 0; q < objects.length && !covered; q++) if (q !== oi && G.pointInRegion([mx, my], objects[q].region)) covered = true;
+              if (covered) continue;
+              o.surface(ax, ay, out);
+              const za = out[0], ka = out[1];
+              o.surface(bx, by, out);
+              const ci = Math.min(g.nx - 1, Math.max(0, Math.floor(((ax + bx) / 2 - g.x0) / g.cellFt)));
+              const cj = Math.min(g.ny - 1, Math.max(0, Math.floor(((ay + by) / 2 - g.y0) / g.cellFt)));
+              data.push(ax, ay, bx, by, za, ka, out[0], out[1], g.data[cj * g.nx + ci]);
+            }
+          }
+        }
+      }
+    }
+    return {
+      spec, existing: g.data, objects, owner, z0, k, section,
+      pieces: Float64Array.from(data), pieceCount: data.length / PIECE,
+      inParcel: opts.parcel ? Grid.rasterize(spec, [opts.parcel]) : null,
+      criteria: opts.criteria, daylight, sections,
+    };
+  }
+
+  function evaluateModel(m, ffeFt, opts) {
+    opts = opts || {};
+    const { spec, existing, owner } = m;
+    const { nx, ny, cellFt } = spec;
+    const n = nx * ny;
+    const s = m.criteria.tieInSlopeHtoV;
+    const proposed = new Float32Array(n);
+    for (let c = 0; c < n; c++) proposed[c] = owner[c] >= 0 ? m.z0[c] + m.k[c] * ffeFt : existing[c];
+
+    let L = null, U = null;
+    if (m.pieceCount) {
+      L = new Float32Array(n).fill(-1e9);
+      U = new Float32Array(n).fill(1e9);
+      const P = m.pieces;
+      let hMax = 0;
+      for (let p = 0; p < m.pieceCount; p++) {
+        const o = p * PIECE, e = P[o + 8];
+        hMax = Math.max(hMax, Math.abs(P[o + 4] + P[o + 5] * ffeFt - e), Math.abs(P[o + 6] + P[o + 7] * ffeFt - e));
+      }
+      const reach = Math.min(500, s * hMax * 1.75 + 15 + 2 * cellFt);
+      for (let p = 0; p < m.pieceCount; p++) {
+        const o = p * PIECE;
+        const ax = P[o], ay = P[o + 1], bx = P[o + 2], by = P[o + 3];
+        const za = P[o + 4] + P[o + 5] * ffeFt, zb = P[o + 6] + P[o + 7] * ffeFt;
+        const i0 = Math.max(0, Math.floor((Math.min(ax, bx) - reach - spec.x0) / cellFt));
+        const i1 = Math.min(nx - 1, Math.floor((Math.max(ax, bx) + reach - spec.x0) / cellFt));
+        const j0 = Math.max(0, Math.floor((Math.min(ay, by) - reach - spec.y0) / cellFt));
+        const j1 = Math.min(ny - 1, Math.floor((Math.max(ay, by) + reach - spec.y0) / cellFt));
+        const abx = bx - ax, aby = by - ay, l2 = abx * abx + aby * aby;
+        for (let j = j0; j <= j1; j++) {
+          const y = spec.y0 + (j + 0.5) * cellFt, row = j * nx;
+          for (let i = i0; i <= i1; i++) {
+            const c = row + i;
+            if (owner[c] >= 0) continue;
+            const x = spec.x0 + (i + 0.5) * cellFt;
+            let t = ((x - ax) * abx + (y - ay) * aby) / l2;
+            t = t < 0 ? 0 : t > 1 ? 1 : t;
+            const qx = ax + abx * t - x, qy = ay + aby * t - y;
+            const d = Math.sqrt(qx * qx + qy * qy);
+            if (d > reach) continue;
+            const z = za + (zb - za) * t;
+            const lo = z - d / s, hi = z + d / s;
+            if (lo > L[c]) L[c] = lo;
+            if (hi < U[c]) U[c] = hi;
+          }
+        }
+      }
+    }
+
+    const cut = new Float64Array(CATEGORIES.length), fill = new Float64Array(CATEGORIES.length), area = new Float64Array(CATEGORIES.length);
+    const catIndex = m.objects.map((o) => CATEGORIES.indexOf(o.category));
+    const tie = CATEGORIES.indexOf('tieIn');
+    const cellArea = cellFt * cellFt;
+    const wallHeight = opts.quick ? null : new Float32Array(n);
+    let sectionCf = 0, disturbed = 0, offsite = 0, offsiteMax = 0, maxCut = 0, maxFill = 0, anyWall = false;
+    const tol = m.criteria.offsiteToleranceFt;
+    for (let c = 0; c < n; c++) {
+      const e = existing[c];
+      let diff, cat;
+      if (owner[c] >= 0) {
+        const sec = m.section[c];
+        diff = proposed[c] - sec - e;
+        sectionCf += sec * cellArea;
+        cat = catIndex[owner[c]];
+        disturbed += cellArea;
+        area[cat] += cellArea;
+      } else {
+        if (!L || L[c] < -1e8) continue;
+        const lo = L[c], hi = U[c];
+        let z;
+        if (lo > hi + 1e-4) {
+          z = e < hi ? hi : e > lo ? lo : e;
+          if (wallHeight) { wallHeight[c] = lo - hi; anyWall = true; }
+        } else z = e < lo ? lo : e > hi ? hi : e;
+        proposed[c] = z;
+        diff = z - e;
+        if (Math.abs(diff) < 0.005) continue;
+        cat = tie;
+        disturbed += cellArea;
+        area[cat] += cellArea;
+      }
+      if (diff > 0) {
+        fill[cat] += diff * cellArea;
+        if (proposed[c] - e > maxFill) maxFill = proposed[c] - e;
+      } else {
+        cut[cat] -= diff * cellArea;
+        if (e - proposed[c] > maxCut) maxCut = e - proposed[c];
+      }
+      if (m.inParcel && !m.inParcel[c]) {
+        const dz = Math.abs(proposed[c] - e);
+        if (dz > tol) { offsite += cellArea; if (dz > offsiteMax) offsiteMax = dz; }
+      }
+    }
+    let cutCf = 0, fillCf = 0;
+    for (let i = 0; i < CATEGORIES.length; i++) { cutCf += cut[i]; fillCf += fill[i]; }
+    const walls = wallHeight && anyWall ? groupWalls(m, wallHeight) : [];
+    return {
+      ffeFt, proposed, wallHeight, cutCf, fillCf,
+      netCf: cutCf * (1 - m.criteria.shrinkPct / 100) - fillCf,
+      sectionCf, disturbedSf: disturbed,
+      byCategory: CATEGORIES.map((category, i) => ({ category, cutCf: cut[i], fillCf: fill[i], areaSf: area[i] })).filter((r) => r.areaSf > 0),
+      walls, offsiteAreaSf: offsite, offsiteMaxDeltaFt: offsiteMax, maxCutFt: maxCut, maxFillFt: maxFill,
+    };
+  }
+
+  function groupWalls(m, wallHeight) {
+    const { nx, ny, cellFt, x0, y0 } = m.spec;
+    const minH = m.criteria.minWallHeightFt;
+    const seen = new Uint8Array(nx * ny);
+    const out = [];
+    const stack = [];
+    for (let start = 0; start < wallHeight.length; start++) {
+      if (seen[start] || wallHeight[start] <= 0.05) continue;
+      stack.length = 0; stack.push(start); seen[start] = 1;
+      let cells = 0, sumH = 0, maxH = 0, sx = 0, sy = 0, adj = 0;
+      const neighbors = new Set();
+      while (stack.length) {
+        const c = stack.pop();
+        const i = c % nx, j = (c - i) / nx, h = wallHeight[c];
+        cells++; sumH += h; if (h > maxH) maxH = h; sx += i; sy += j;
+        const nb = [i > 0 ? c - 1 : -1, i < nx - 1 ? c + 1 : -1, j > 0 ? c - nx : -1, j < ny - 1 ? c + nx : -1];
+        for (const q of nb) {
+          if (q < 0) continue;
+          if (m.owner[q] >= 0) { adj++; neighbors.add(m.owner[q]); }
+          else if (!seen[q] && wallHeight[q] > 0.05) { seen[q] = 1; stack.push(q); }
+        }
+      }
+      if (maxH < minH) continue;
+      const lengthFt = Math.max((adj * cellFt) / 2, Math.sqrt(cells) * cellFt);
+      out.push({
+        lengthFt, maxHeightFt: maxH, avgHeightFt: sumH / cells,
+        at: [x0 + (sx / cells + 0.5) * cellFt, y0 + (sy / cells + 0.5) * cellFt],
+        betweenObjectIds: [...neighbors].map((i) => m.objects[i].id),
+      });
+    }
+    return out.sort((a, b) => b.maxHeightFt * b.lengthFt - a.maxHeightFt * a.lengthFt).map((w, i) => Object.assign(w, { id: 'wall-' + (i + 1) }));
+  }
+
+  /** Solve net(FFE) = target by bisection in [minFt, maxFt]. Net falls monotonically as FFE rises. */
+  function solveFfe(m, o) {
+    const f = (ffe) => evaluateModel(m, ffe, { quick: true }).netCf - o.targetNetCf;
+    let lo = o.minFt, hi = o.maxFt, flo = f(lo), fhi = f(hi), iterations = 2;
+    if (flo <= 0) return { ffeFt: lo, achieved: Math.abs(flo) < 1, netCf: flo + o.targetNetCf, iterations, bound: 'min' };
+    if (fhi >= 0) return { ffeFt: hi, achieved: Math.abs(fhi) < 1, netCf: fhi + o.targetNetCf, iterations, bound: 'max' };
+    const tol = o.tolFt || 0.002;
+    while (hi - lo > tol && iterations < 60) {
+      const mid = (lo + hi) / 2, fm = f(mid);
+      iterations++;
+      if (fm > 0) { lo = mid; flo = fm; } else { hi = mid; fhi = fm; }
+    }
+    const ffe = flo === fhi ? (lo + hi) / 2 : lo + ((hi - lo) * flo) / (flo - fhi);
+    return { ffeFt: ffe, achieved: true, netCf: f(ffe) + o.targetNetCf, iterations: iterations + 1, bound: 'none' };
+  }
+
+  /** Max and mean slope (%) of a surface over the cells inside a ring (central differences). */
+  function surfaceSlopePct(m, surface, ring) {
+    const { nx, ny, cellFt } = m.spec;
+    let max = 0, sum = 0, cells = 0;
+    Grid.forEachCellInRegion(m.spec, [ring], (i, j) => {
+      if (i < 1 || j < 1 || i >= nx - 1 || j >= ny - 1) return;
+      const c = j * nx + i, o = m.owner[c];
+      if (m.owner[c - 1] !== o || m.owner[c + 1] !== o || m.owner[c - nx] !== o || m.owner[c + nx] !== o) return;
+      const gx = (surface[c + 1] - surface[c - 1]) / (2 * cellFt), gy = (surface[c + nx] - surface[c - nx]) / (2 * cellFt);
+      const sl = Math.hypot(gx, gy) * 100;
+      if (sl > max) max = sl;
+      sum += sl; cells++;
+    });
+    return { maxPct: max, avgPct: cells ? sum / cells : 0, cells };
+  }
+
+  LD.grading = { CRITERIA, PRIORITY, flatPad, planarPad, makeModel, evaluateModel, solveFfe, surfaceSlopePct };
+})();
+
+</script>
+<script>/* parking.js */
+/* parking.js: car parking field layout and accessible-stall counts.
+ * Ported from groundwork/packages/core/src/layout/building.ts and criteria/ada.ts.
+ *
+ * A field is laid out in its own frame: u runs along the rows (lengthFt), v across them (depthFt).
+ * Rows come in modules: stall row | aisle | stall row. Each row loses an end island at each end
+ * plus the cross aisle, and gets an interior landscape island every N stalls.
+ */
+'use strict';
+(function () {
+  const G = LD.geom;
+
+  /** Defaults (EFCG); stall size and minimum aisle are overridden by the site's zoning values. */
+  const DEFAULTS = {
+    carStallWidthFt: 10,         // equals the North Lebanon 27-1402 minimum (10 x 20 ft)
+    carStallLengthFt: 20,
+    carAisleFt: 24,              // two-way 90-degree aisle (zoning minimum is 20 ft, 27-1407)
+    parkingEndIslandFt: 10,      // landscape island at each end of a row (>= 5 ft per 27-1302)
+    parkingIslandEveryStalls: 15,// one interior island per this many stalls (ordinance gives no spacing)
+    adaAisleFt: 5,               // ADA access aisle (>= 60 in, 2010 ADA 502.3)
+    adaVanAisleFt: 8,            // van access aisle (96 in, 2010 ADA 502.2)
+  };
+
+  /** 2010 ADA Standards Table 208.2: [max total spaces, min accessible spaces]. */
+  const TABLE_208_2 = [[25, 1], [50, 2], [75, 3], [100, 4], [150, 5], [200, 6], [300, 7], [400, 8], [500, 9]];
+  function adaRequired(total) {
+    if (total <= 0) return 0;
+    for (const [max, req] of TABLE_208_2) if (total <= max) return req;
+    if (total <= 1000) return Math.ceil(total * 0.02);
+    return 20 + Math.ceil((total - 1000) / 100);
+  }
+  /** 2010 ADA 208.2.4: one van space for every six accessible spaces, or fraction. */
+  const adaVanRequired = (ada) => (ada <= 0 ? 0 : Math.ceil(ada / 6));
+
+  function criteriaFor(site) {
+    const c = Object.assign({}, DEFAULTS);
+    if (site) {
+      const w = site.zv('stallWidthFt'), l = site.zv('stallLengthFt'), a = site.zv('aisleWidthFt');
+      if (w) c.carStallWidthFt = Math.max(c.carStallWidthFt, w);
+      if (l) c.carStallLengthFt = Math.max(c.carStallLengthFt, l);
+      if (a) c.carAisleFt = Math.max(c.carAisleFt, a);
+    }
+    return c;
+  }
+
+  const moduleDepthFt = (c) => 2 * c.carStallLengthFt + c.carAisleFt;
+  function rowCapacity(lengthFt, c) {
+    const zoneStartFt = c.carAisleFt + c.parkingEndIslandFt;
+    const zone = lengthFt - 2 * zoneStartFt;
+    const positions = Math.max(0, Math.floor(zone / c.carStallWidthFt + 1e-9));
+    const islands = Math.floor(positions / (c.parkingIslandEveryStalls + 1));
+    return { positions, islands, stalls: positions - islands, zoneStartFt };
+  }
+  function fieldDepthFt(rows, c) {
+    const modules = Math.floor(rows / 2);
+    return modules * moduleDepthFt(c) + (rows % 2 ? c.carStallLengthFt + c.carAisleFt : 0);
+  }
+  function adaZoneFt(ada, van, c) {
+    const cars = Math.max(0, ada - van);
+    return ada * c.carStallWidthFt + Math.ceil(van / 2) * c.adaVanAisleFt + Math.ceil(cars / 2) * c.adaAisleFt;
+  }
+
+  /** spec: {origin, angleDeg, lengthFt, rows}. Returns the field with counts and its outline. */
+  function makeField(spec, c) {
+    const cap = rowCapacity(spec.lengthFt, c);
+    const depthFt = fieldDepthFt(spec.rows, c);
+    const totalPositions = cap.stalls * spec.rows;
+    const ada = totalPositions > 0 ? Math.min(adaRequired(totalPositions), cap.stalls) : 0;
+    const van = adaVanRequired(ada);
+    const displaced = ada > 0 ? Math.ceil(adaZoneFt(ada, van, c) / c.carStallWidthFt) : 0;
+    const rows = [];
+    let v = 0;
+    for (let r = 0; r < spec.rows; r++) {
+      const first = r % 2 === 0;
+      const row = { v0: first ? v : v + c.carStallLengthFt + c.carAisleFt, aisleSide: first ? 1 : -1, stalls: cap.stalls, ada: 0, van: 0 };
+      if (r === 0 && ada > 0) { row.stalls = Math.max(0, cap.stalls - displaced); row.ada = ada; row.van = van; }
+      rows.push(row);
+      if (!first) v += moduleDepthFt(c);
+    }
+    const stallsStd = rows.reduce((s, r) => s + r.stalls, 0);
+    const f = { origin: spec.origin, angleDeg: spec.angleDeg };
+    return {
+      origin: spec.origin, angleDeg: spec.angleDeg, lengthFt: spec.lengthFt, depthFt, rows,
+      stallsStd, stallsAda: ada, stallsVan: van, stallsTotal: stallsStd + ada,
+      adaRequired: adaRequired(stallsStd + ada),
+      islandSf: spec.rows * (2 * c.parkingEndIslandFt + cap.islands * c.carStallWidthFt) * c.carStallLengthFt,
+      polygon: G.frameRect(f, 0, 0, spec.lengthFt, depthFt),
+    };
+  }
+
+  /** Striping, islands and accessible stalls, for drawing. */
+  function stallGeometry(field, c) {
+    const f = { origin: field.origin, angleDeg: field.angleDeg };
+    const cap = rowCapacity(field.lengthFt, c);
+    const W = (u, v) => G.toWorld(f, [u, v]);
+    const g = { lines: [], adaAisles: [], adaStalls: [], islands: [] };
+    const sl = c.carStallLengthFt, sw = c.carStallWidthFt;
+    for (const row of field.rows) {
+      const v0 = row.v0, v1 = row.v0 + sl;
+      g.islands.push(G.frameRect(f, c.carAisleFt, v0, cap.zoneStartFt, v1), G.frameRect(f, field.lengthFt - cap.zoneStartFt, v0, field.lengthFt - c.carAisleFt, v1));
+      let u = cap.zoneStartFt;
+      const zoneEnd = field.lengthFt - cap.zoneStartFt;
+      const back = row.aisleSide === 1 ? v0 : v1;
+      g.lines.push([W(cap.zoneStartFt, back), W(zoneEnd, back)]);
+      if (row.ada > 0) {
+        let left = row.ada, vans = row.van;
+        while (left > 0) {
+          const pair = Math.min(2, left), aisle = vans > 0 ? c.adaVanAisleFt : c.adaAisleFt;
+          g.adaStalls.push(G.frameRect(f, u, v0, u + sw, v1));
+          g.adaAisles.push(G.frameRect(f, u + sw, v0, u + sw + aisle, v1));
+          if (pair === 2) g.adaStalls.push(G.frameRect(f, u + sw + aisle, v0, u + 2 * sw + aisle, v1));
+          g.lines.push([W(u, v0), W(u, v1)]);
+          u += pair * sw + aisle; left -= pair; vans -= pair;
+        }
+        g.lines.push([W(u, v0), W(u, v1)]);
+        u = cap.zoneStartFt + Math.ceil((u - cap.zoneStartFt) / sw - 1e-9) * sw;
+      }
+      let sinceIsland = 0, placed = 0;
+      while (placed < row.stalls && u + sw <= zoneEnd + 1e-6) {
+        if (sinceIsland === c.parkingIslandEveryStalls) { g.islands.push(G.frameRect(f, u, v0, u + sw, v1)); u += sw; sinceIsland = 0; continue; }
+        g.lines.push([W(u, v0), W(u, v1)]);
+        u += sw; placed++; sinceIsland++;
+      }
+      g.lines.push([W(u, v0), W(u, v1)]);
+    }
+    return g;
+  }
+
+  /** Smallest field (rows fixed) whose total stalls reach `stalls`. Returns lengthFt. */
+  function lengthForStalls(stalls, rows, c) {
+    for (let L = 2 * (c.carAisleFt + c.parkingEndIslandFt) + c.carStallWidthFt; L < 5000; L += c.carStallWidthFt) {
+      const f = makeField({ origin: [0, 0], angleDeg: 0, lengthFt: L, rows }, c);
+      if (f.stallsTotal >= stalls) return L;
+    }
+    return null;
+  }
+
+  LD.parking = { DEFAULTS, criteriaFor, adaRequired, adaVanRequired, rowCapacity, moduleDepthFt, fieldDepthFt, makeField, stallGeometry, lengthForStalls };
+})();
+
+</script>
+<script>/* site.js */
+/* site.js: read a site package (SITE_PACKAGE_FORMAT.md v1.x) into the viewer's site model. */
+'use strict';
+(function () {
+  const G = LD.geom, Grid = LD.grid;
+
+  function fail(msg) {
+    const e = new Error(msg);
+    e.userMessage = msg;
+    throw e;
+  }
+
+  /** base64 -> Uint8Array without blowing the stack on big strings. */
+  function b64ToBytes(b64) {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function decodeTerrain(t) {
+    if (t.encoding !== 'uint16-scaled-base64') fail('Unknown terrain encoding "' + t.encoding + '".');
+    const bytes = b64ToBytes(t.data);
+    const n = t.rows * t.cols;
+    if (bytes.length !== 2 * n) fail('The terrain grid is damaged: expected ' + n + ' values, found ' + bytes.length / 2 + '.');
+    const dv = new DataView(bytes.buffer);
+    const data = new Float32Array(n);
+    let sum = 0, cnt = 0, missing = 0;
+    for (let i = 0; i < n; i++) {
+      const q = dv.getUint16(2 * i, true);
+      if (q === t.noData) { data[i] = NaN; missing++; continue; }
+      const z = t.offsetFt + q * t.scaleFt;
+      data[i] = z; sum += z; cnt++;
+    }
+    if (missing) {
+      // Fill gaps (usually off-site edges) with the mean so grading math never sees NaN.
+      const mean = sum / Math.max(cnt, 1);
+      for (let i = 0; i < n; i++) if (Number.isNaN(data[i])) data[i] = mean;
+    }
+    return { x0: t.x0Ft, y0: t.y0Ft, cellFt: t.cellSizeFt, nx: t.cols, ny: t.rows, data, missing };
+  }
+
+  function load(pkg) {
+    if (!pkg || typeof pkg !== 'object') fail('That file is not a site package.');
+    if (pkg.format !== 'efcg-site-package') fail('That file is not an EFCG site package (format is "' + (pkg.format || 'missing') + '").');
+    if (!String(pkg.version || '').startsWith('1.')) fail('This viewer reads site package version 1.x; the file is version ' + pkg.version + '.');
+    if (!pkg.crs || pkg.crs.epsg !== 2272) fail('The package must use PA South State Plane feet (EPSG:2272).');
+    for (const k of ['metadata', 'parcel', 'terrain', 'features', 'zoning', 'derived'])
+      if (!pkg[k]) fail('The package is missing its "' + k + '" section.');
+
+    const terrain = decodeTerrain(pkg.terrain);
+    const ring = G.ensureCCW(pkg.parcel.polygon.outer);
+    const parcelPoly = { outer: ring, holes: pkg.parcel.polygon.holes || [] };
+    const lines = pkg.derived.setbackLines || [];
+    const edges = ring.map((a, i) => {
+      const e = (pkg.parcel.edges || [])[i] || {};
+      const sl = lines.find((l) => l.edgeIndex === i) || {};
+      return {
+        index: i, a, b: ring[(i + 1) % ring.length], type: e.type || 'side', road: e.road || null,
+        rowInsetFt: e.rowInsetFt || 0, lengthFt: e.lengthFt,
+        buildingSetbackFt: sl.buildingSetbackFt, parkingSetbackFt: sl.parkingSetbackFt,
+        section: sl.section, parkingSection: sl.parkingSection,
+      };
+    });
+    const zvals = (pkg.zoning && pkg.zoning.values) || {};
+    const zv = (k) => (zvals[k] && zvals[k].value != null ? zvals[k].value : null);
+    const zsec = (k) => (zvals[k] && zvals[k].section) || null;
+
+    const bEnv = pkg.derived.buildingEnvelope || [];
+    const pEnv = pkg.derived.parkingEnvelope || [];
+    const largest = (list) => list.slice().sort((p, q) => G.polyArea(q) - G.polyArea(p))[0];
+    const bBig = largest(bEnv), pBig = largest(pEnv);
+
+    let pmin = Infinity, pmax = -Infinity;
+    Grid.forEachCellInRegion(terrain, [ring], (i, j) => {
+      const v = terrain.data[j * terrain.nx + i];
+      if (v < pmin) pmin = v;
+      if (v > pmax) pmax = v;
+    });
+
+    const site = {
+      pkg, meta: pkg.metadata, zoning: pkg.zoning, features: pkg.features, imagery: pkg.imagery || null,
+      terrain, parcelRing: ring, parcelPoly, parcelAreaSf: G.polyArea(parcelPoly), edges,
+      buildingEnvelope: bEnv, parkingEnvelope: pEnv,
+      buildingCenter: bBig ? G.innerPoint(bBig) : G.innerPoint(parcelPoly),
+      parkingCenter: pBig ? G.innerPoint(pBig) : G.innerPoint(parcelPoly),
+      parcelBBox: G.bbox([ring]),
+      elevMinFt: pmin, elevMaxFt: pmax,
+      zv, zsec,
+      extent: {
+        xMin: terrain.x0, yMin: terrain.y0,
+        xMax: terrain.x0 + terrain.nx * terrain.cellFt, yMax: terrain.y0 + terrain.ny * terrain.cellFt,
+      },
+    };
+    return site;
+  }
+
+  /** Short plain-text description of a parcel edge, e.g. "front lot line on Heilmandale Rd (north side)". */
+  function edgeLabel(e) {
+    const dx = e.b[0] - e.a[0], dy = e.b[1] - e.a[1];
+    // The ring is counter-clockwise, so the outward normal is (dy, -dx); its angle names the side.
+    const ang = (Math.atan2(-dx, dy) * 180) / Math.PI;
+    const dirs = ['east', 'north-east', 'north', 'north-west', 'west', 'south-west', 'south', 'south-east'];
+    const face = dirs[Math.round(((ang + 360) % 360) / 45) % 8];
+    return e.type + ' lot line' + (e.road ? ' on ' + e.road : '') + ' (' + face + ' side)';
+  }
+
+  LD.site = { load, decodeTerrain, edgeLabel };
+})();
+
+</script>
+<script>/* commands.js */
+/* commands.js: the app's command layer. Every change to the design goes through here.
+ * Test-mode buttons and Claude's chat tools call exactly the same commands, so every number
+ * shown (areas, setbacks, earthwork, stall counts) comes from this code, never from Claude.
+ *
+ * A command = { name, title, description (written for Claude), inputSchema (JSON Schema),
+ *               mutates, testInput (pre-filled values for test mode), run(ctx, input) -> result }.
+ * Undo: before each change the design is snapshotted; undoing restores that snapshot.
+ */
+'use strict';
+(function () {
+  const G = LD.geom, Grid = LD.grid, P = LD.parking, GR = LD.grading, F = LD.fmt;
+
+  // ----------------------------------------------------------------------------------------------
+  // App state
+  // ----------------------------------------------------------------------------------------------
+  const app = (LD.app = {
+    site: null,
+    state: null,
+    history: [],     // [{seq, name, input, summary, source, before}]
+    seq: 0,
+    display: { grading: null }, // big arrays for the 3D view (not part of undo snapshots)
+    listeners: [],
+    on(fn) { this.listeners.push(fn); },
+    emit(kind, detail) { for (const fn of this.listeners) try { fn(kind, detail); } catch (e) { console.error(e); } },
+  });
+
+  const newState = () => ({ elements: [], counters: { B: 0, P: 0 }, grading: null, checks: null });
+
+  app.setSite = function (site) {
+    app.site = site;
+    app.state = newState();
+    app.history = [];
+    app.display.grading = null;
+    app.emit('site');
+  };
+
+  // ----------------------------------------------------------------------------------------------
+  // Element geometry
+  // ----------------------------------------------------------------------------------------------
+  function parkingField(el) {
+    const c = P.criteriaFor(app.site);
+    const depth = P.fieldDepthFt(el.rows, c);
+    const a = (el.angleDeg * Math.PI) / 180, ux = Math.cos(a), uy = Math.sin(a);
+    const origin = [el.cxFt - (el.lengthFt / 2) * ux + (depth / 2) * uy, el.cyFt - (el.lengthFt / 2) * uy - (depth / 2) * ux];
+    return P.makeField({ origin, angleDeg: el.angleDeg, lengthFt: el.lengthFt, rows: el.rows }, c);
+  }
+  function elementRing(el) {
+    if (el.type === 'building') return G.rectRing(el.cxFt, el.cyFt, el.widthFt, el.depthFt, el.rotationDeg);
+    return parkingField(el).polygon;
+  }
+  const footprintSf = (el) => G.area(elementRing(el));
+  const avgGround = (ring) => LD.round(Grid.meanInRing(app.site.terrain, ring), 1);
+  const insideAny = (ring, polys) => polys.some((p) => G.ringInsidePoly(ring, p));
+
+  function getEl(id) {
+    const key = String(id || '').trim().toUpperCase();
+    const el = app.state.elements.find((e) => e.id.toUpperCase() === key || (e.name || '').toUpperCase() === key);
+    if (!el) {
+      const ids = app.state.elements.map((e) => e.id + (e.name ? ' (' + e.name + ')' : '')).join(', ') || 'none yet';
+      throw new Error('There is no element "' + id + '". Elements: ' + ids + '.');
+    }
+    return el;
+  }
+  function coverage() {
+    const b = app.state.elements.filter((e) => e.type === 'building').reduce((s, e) => s + footprintSf(e), 0);
+    return { buildingSf: b, pct: (100 * b) / app.site.parcelAreaSf, maxPct: app.site.zv('maxLotCoveragePct') };
+  }
+  function describeEl(el) {
+    const ring = elementRing(el);
+    const o = {
+      id: el.id, type: el.type, name: el.name,
+      centerXFt: LD.round(el.cxFt, 1), centerYFt: LD.round(el.cyFt, 1),
+      footprintSf: Math.round(G.area(ring)),
+      existingGroundAvgFt: avgGround(ring),
+    };
+    if (el.type === 'building') Object.assign(o, {
+      widthFt: el.widthFt, depthFt: el.depthFt, heightFt: el.heightFt, rotationDeg: el.rotationDeg,
+      padElevationFt: el.padElevFt, padElevationSource: el.padElevSource,
+      insideBuildableArea: insideAny(ring, app.site.buildingEnvelope),
+    });
+    else {
+      const f = parkingField(el);
+      Object.assign(o, {
+        lengthFt: el.lengthFt, depthFt: f.depthFt, rows: el.rows, angleDeg: el.angleDeg,
+        stallsTotal: f.stallsTotal, stallsStandard: f.stallsStd, stallsAccessible: f.stallsAda, stallsVanAccessible: f.stallsVan,
+        surfaceElevationAtCenterFt: el.elevFt, slopePct: GR.CRITERIA.parkingSlopePct,
+        insideParkingArea: insideAny(ring, app.site.parkingEnvelope),
+      });
+    }
+    return o;
+  }
+
+  function invalidateResults() {
+    if (app.state.grading) app.state.grading.stale = true;
+    if (app.state.checks) app.state.checks.stale = true;
+    app.display.grading = null;
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // Input checking (JSON Schema subset: type, minimum, maximum, enum, required)
+  // ----------------------------------------------------------------------------------------------
+  function cleanInput(schema, raw) {
+    const out = {};
+    const props = (schema && schema.properties) || {};
+    raw = raw || {};
+    for (const [k, s] of Object.entries(props)) {
+      let v = raw[k];
+      if (v === '' || v === undefined || v === null) {
+        if (s.default !== undefined) out[k] = s.default;
+        continue;
+      }
+      if (s.type === 'number' || s.type === 'integer') {
+        const n = Number(v);
+        if (!Number.isFinite(n)) throw new Error(k + ' must be a number (got "' + v + '").');
+        if (s.type === 'integer' && !Number.isInteger(n)) throw new Error(k + ' must be a whole number.');
+        if (s.minimum !== undefined && n < s.minimum) throw new Error(k + ' must be at least ' + s.minimum + '.');
+        if (s.maximum !== undefined && n > s.maximum) throw new Error(k + ' must be at most ' + s.maximum + '.');
+        v = n;
+      } else if (s.type === 'boolean') {
+        v = v === true || v === 'true';
+      } else {
+        v = String(v).trim();
+        if (s.enum && !s.enum.includes(v)) throw new Error(k + ' must be one of: ' + s.enum.join(', ') + '.');
+      }
+      out[k] = v;
+    }
+    for (const k of (schema && schema.required) || [])
+      if (out[k] === undefined) throw new Error('Missing ' + k + ': ' + ((props[k] && props[k].description) || 'required') + (/[.!?]$/.test((props[k] && props[k].description) || '') ? '' : '.'));
+    return out;
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // Commands
+  // ----------------------------------------------------------------------------------------------
+  const ID = { type: 'string', description: 'Element id, e.g. "B1" (building) or "P1" (parking). See listElements.', 'x-ref': 'element' };
+  const commands = [];
+  const def = (c) => commands.push(c);
+
+  def({
+    name: 'addBuilding',
+    title: 'Add building',
+    description: 'Add a rectangular building. Omit the centre to place it in the middle of the buildable area (inside all setbacks). ' +
+      'The finished floor (pad) elevation starts at the average existing ground under it. Returns the new id, area, ' +
+      'whether it fits inside the buildable area, and lot coverage.',
+    mutates: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Label, e.g. "Warehouse A".' },
+        widthFt: { type: 'number', minimum: 20, maximum: 3000, description: 'Building length along its main axis, ft.' },
+        depthFt: { type: 'number', minimum: 20, maximum: 2000, description: 'Building depth across its main axis, ft.' },
+        heightFt: { type: 'number', minimum: 10, maximum: 250, default: 40, description: 'Building height above finished floor, ft (default 40).' },
+        centerXFt: { type: 'number', description: 'Easting of the building centre, PA South State Plane ft. Omit to use the middle of the buildable area.' },
+        centerYFt: { type: 'number', description: 'Northing of the building centre, PA South State Plane ft. Omit to use the middle of the buildable area.' },
+        rotationDeg: { type: 'number', minimum: -360, maximum: 360, default: 0, description: 'Rotation of the main axis, degrees counter-clockwise from east (0 = long side runs east-west).' },
+      },
+      required: ['widthFt', 'depthFt'],
+    },
+    testInput: { name: 'Warehouse A', widthFt: 600, depthFt: 400, heightFt: 40, rotationDeg: 0 },
+    run(ctx, i) {
+      if ((i.centerXFt === undefined) !== (i.centerYFt === undefined)) throw new Error('Give both centerXFt and centerYFt, or neither.');
+      const c = i.centerXFt !== undefined ? [i.centerXFt, i.centerYFt] : app.site.buildingCenter;
+      const st = app.state;
+      const id = 'B' + ++st.counters.B;
+      const el = { id, type: 'building', name: i.name || 'Building ' + id.slice(1), cxFt: c[0], cyFt: c[1], widthFt: i.widthFt, depthFt: i.depthFt, heightFt: i.heightFt, rotationDeg: i.rotationDeg, padElevFt: null, padElevSource: 'auto' };
+      const ring = elementRing(el);
+      el.padElevFt = avgGround(ring);
+      st.elements.push(el);
+      const d = describeEl(el), cov = coverage();
+      return {
+        summary: `Added ${id} "${el.name}": ${F.n(i.widthFt)} x ${F.n(i.depthFt)} ft (${F.sf(d.footprintSf)}, ${F.ac(d.footprintSf / 43560)}), ` +
+          `${F.ft(i.heightFt, 0)} tall. Finished floor ${F.ft(el.padElevFt)} (average existing ground). ` +
+          (d.insideBuildableArea ? 'It fits inside the buildable area. ' : 'It does NOT fit inside the buildable area (crosses a setback line). ') +
+          `Lot coverage now ${F.n(cov.pct, 1)}%` + (cov.maxPct != null ? ` (max ${cov.maxPct}%).` : '.'),
+        data: { element: d, lotCoveragePct: LD.round(cov.pct, 2) },
+        changedIds: [id],
+      };
+    },
+  });
+
+  def({
+    name: 'moveElement',
+    title: 'Move element',
+    description: 'Move or rotate a building or parking field. Give dxFt/dyFt to shift it (east/north positive), or centerXFt/centerYFt ' +
+      'for an exact position; optionally rotationDeg (absolute) or rotateByDeg. Returns the new position and whether it is still inside the setbacks.',
+    mutates: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: ID,
+        dxFt: { type: 'number', description: 'Shift east (+) or west (-), ft.' },
+        dyFt: { type: 'number', description: 'Shift north (+) or south (-), ft.' },
+        centerXFt: { type: 'number', description: 'New easting of the centre, PA South State Plane ft.' },
+        centerYFt: { type: 'number', description: 'New northing of the centre, PA South State Plane ft.' },
+        rotationDeg: { type: 'number', minimum: -360, maximum: 360, description: 'New rotation, degrees counter-clockwise from east.' },
+        rotateByDeg: { type: 'number', minimum: -360, maximum: 360, description: 'Rotate by this many degrees (counter-clockwise +).' },
+      },
+      required: ['id'],
+    },
+    testInput: { id: 'B1', dxFt: 100, dyFt: 0 },
+    run(ctx, i) {
+      const el = getEl(i.id);
+      const shift = i.dxFt !== undefined || i.dyFt !== undefined;
+      const abs = i.centerXFt !== undefined || i.centerYFt !== undefined;
+      if (shift && abs) throw new Error('Give either dxFt/dyFt or centerXFt/centerYFt, not both.');
+      if (abs && (i.centerXFt === undefined || i.centerYFt === undefined)) throw new Error('Give both centerXFt and centerYFt.');
+      if (i.rotationDeg !== undefined && i.rotateByDeg !== undefined) throw new Error('Give rotationDeg or rotateByDeg, not both.');
+      if (!shift && !abs && i.rotationDeg === undefined && i.rotateByDeg === undefined) throw new Error('Nothing to do: give a shift, a new centre or a rotation.');
+      const from = [el.cxFt, el.cyFt];
+      if (shift) { el.cxFt += i.dxFt || 0; el.cyFt += i.dyFt || 0; }
+      if (abs) { el.cxFt = i.centerXFt; el.cyFt = i.centerYFt; }
+      const key = el.type === 'building' ? 'rotationDeg' : 'angleDeg';
+      if (i.rotationDeg !== undefined) el[key] = i.rotationDeg;
+      if (i.rotateByDeg !== undefined) el[key] = (el[key] || 0) + i.rotateByDeg;
+      const ring = elementRing(el);
+      let elevNote = '';
+      if (el.type === 'building' && el.padElevSource === 'auto') { el.padElevFt = avgGround(ring); elevNote = ` Finished floor follows the ground: now ${F.ft(el.padElevFt)}.`; }
+      if (el.type === 'parking' && el.elevSource === 'auto') { el.elevFt = avgGround(ring); elevNote = ` Surface elevation follows the ground: now ${F.ft(el.elevFt)}.`; }
+      const inside = insideAny(ring, el.type === 'building' ? app.site.buildingEnvelope : app.site.parkingEnvelope);
+      const moved = Math.hypot(el.cxFt - from[0], el.cyFt - from[1]);
+      return {
+        summary: `Moved ${el.id} "${el.name}" ${F.ft(moved, 0)}` + (i.rotationDeg !== undefined || i.rotateByDeg !== undefined ? `, rotation now ${F.n(el[key], 1)} deg` : '') + '. ' +
+          (inside ? 'It is inside the setbacks.' : 'It now crosses a setback line.') + elevNote,
+        data: { element: describeEl(el), movedFt: LD.round(moved, 1) },
+        changedIds: [el.id],
+      };
+    },
+  });
+
+  def({
+    name: 'setPadElevation',
+    title: 'Set pad elevation',
+    description: 'Set the finished floor (pad) elevation of a building, or the surface elevation at the centre of a parking field, in feet (NAVD88). ' +
+      'Returns the average existing ground under it and the resulting average cut or fill depth. Run runGrading afterwards for earthwork volumes.',
+    mutates: true,
+    inputSchema: {
+      type: 'object',
+      properties: { id: ID, elevationFt: { type: 'number', minimum: -100, maximum: 4000, description: 'Finished elevation, ft NAVD88.' } },
+      required: ['id', 'elevationFt'],
+    },
+    testInput: { id: 'B1', elevationFt: null },
+    run(ctx, i) {
+      const el = getEl(i.id);
+      const ground = avgGround(elementRing(el));
+      if (Math.abs(i.elevationFt - ground) > 60)
+        throw new Error(`${F.ft(i.elevationFt)} is more than 60 ft from the existing ground under ${el.id} (${F.ft(ground)}). Check the number.`);
+      if (el.type === 'building') { el.padElevFt = LD.round(i.elevationFt, 2); el.padElevSource = 'set'; }
+      else { el.elevFt = LD.round(i.elevationFt, 2); el.elevSource = 'set'; }
+      const d = i.elevationFt - ground;
+      return {
+        summary: `${el.id} "${el.name}" ${el.type === 'building' ? 'finished floor' : 'surface (at centre)'} set to ${F.ft(i.elevationFt, 2)}. ` +
+          `Existing ground under it averages ${F.ft(ground)}, so on average this is ${F.ft(Math.abs(d))} of ${d >= 0 ? 'fill' : 'cut'}. Run grading for volumes.`,
+        data: { id: el.id, elevationFt: i.elevationFt, existingGroundAvgFt: ground, averageDepthFt: LD.round(d, 2), kind: d >= 0 ? 'fill' : 'cut' },
+        changedIds: [el.id],
+      };
+    },
+  });
+
+  def({
+    name: 'addParking',
+    title: 'Add parking',
+    description: 'Add a car parking field (10 x 20 ft stalls, 24 ft two-way aisles, landscape islands, ADA stalls per 2010 ADA Table 208.2). ' +
+      'Either give nearBuildingId + side to put it alongside a building, or a centre point; give a target number of stalls, or rows and lengthFt. ' +
+      'Returns the stall counts the app laid out (standard, accessible, van) and the field size.',
+    mutates: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Label, e.g. "Employee parking".' },
+        stalls: { type: 'integer', minimum: 1, maximum: 5000, description: 'Target number of stalls; the field is sized to reach at least this many.' },
+        nearBuildingId: { type: 'string', description: 'Put the field alongside this building (e.g. "B1").', 'x-ref': 'building' },
+        side: { type: 'string', enum: ['north', 'south', 'east', 'west'], description: 'Which side of the building (with nearBuildingId).' },
+        gapFt: { type: 'number', minimum: 0, maximum: 500, default: 10, description: 'Space between building and parking (sidewalk), ft. Default 10.' },
+        rows: { type: 'integer', minimum: 1, maximum: 40, description: 'Number of stall rows (2 rows share one aisle).' },
+        lengthFt: { type: 'number', minimum: 60, maximum: 3000, description: 'Length of the rows, ft.' },
+        centerXFt: { type: 'number', description: 'Easting of the field centre (when not next to a building).' },
+        centerYFt: { type: 'number', description: 'Northing of the field centre (when not next to a building).' },
+        angleDeg: { type: 'number', minimum: -360, maximum: 360, description: 'Direction the rows run, degrees counter-clockwise from east (when not next to a building).' },
+      },
+    },
+    testInput: { name: 'Employee parking', stalls: 120, nearBuildingId: 'B1', side: 'south', gapFt: 10 },
+    run(ctx, i) {
+      const c = P.criteriaFor(app.site);
+      let center, angle = i.angleDeg || 0, lengthFt = i.lengthFt, rows = i.rows;
+      if (i.nearBuildingId) {
+        const b = getEl(i.nearBuildingId);
+        if (b.type !== 'building') throw new Error(i.nearBuildingId + ' is not a building.');
+        if (!i.side) throw new Error('Say which side of the building: north, south, east or west.');
+        const want = { north: [0, 1], south: [0, -1], east: [1, 0], west: [-1, 0] }[i.side];
+        const r = (b.rotationDeg * Math.PI) / 180;
+        const axes = [
+          { n: [Math.cos(r), Math.sin(r)], half: b.widthFt / 2, along: b.depthFt },
+          { n: [-Math.cos(r), -Math.sin(r)], half: b.widthFt / 2, along: b.depthFt },
+          { n: [-Math.sin(r), Math.cos(r)], half: b.depthFt / 2, along: b.widthFt },
+          { n: [Math.sin(r), -Math.cos(r)], half: b.depthFt / 2, along: b.widthFt },
+        ];
+        const ax = axes.sort((p, q) => q.n[0] * want[0] + q.n[1] * want[1] - (p.n[0] * want[0] + p.n[1] * want[1]))[0];
+        lengthFt = lengthFt || ax.along;
+        if (!rows) {
+          rows = 2;
+          if (i.stalls) {
+            rows = 0;
+            for (let r = 1; r <= 40; r++) if (P.makeField({ origin: [0, 0], angleDeg: 0, lengthFt, rows: r }, c).stallsTotal >= i.stalls) { rows = r; break; }
+            if (!rows) throw new Error(`${i.stalls} stalls do not fit along the ${i.side} side of ${b.id} even with 40 rows.`);
+          }
+        }
+        const depth = P.fieldDepthFt(rows, c);
+        const off = ax.half + (i.gapFt || 0) + depth / 2;
+        center = [b.cxFt + ax.n[0] * off, b.cyFt + ax.n[1] * off];
+        angle = (Math.atan2(-ax.n[0], ax.n[1]) * 180) / Math.PI; // rows run along the building side
+      } else {
+        if ((i.centerXFt === undefined) !== (i.centerYFt === undefined)) throw new Error('Give both centerXFt and centerYFt, or neither.');
+        center = i.centerXFt !== undefined ? [i.centerXFt, i.centerYFt] : app.site.parkingCenter;
+        rows = rows || 2;
+        if (!lengthFt) {
+          if (!i.stalls) throw new Error('Give a number of stalls, or rows and lengthFt.');
+          lengthFt = P.lengthForStalls(i.stalls, rows, c);
+          if (!lengthFt) throw new Error('That many stalls needs rows longer than 5,000 ft; add more rows.');
+        }
+      }
+      const st = app.state;
+      const id = 'P' + ++st.counters.P;
+      const el = { id, type: 'parking', name: i.name || 'Parking ' + id.slice(1), cxFt: center[0], cyFt: center[1], lengthFt: LD.round(lengthFt, 1), rows, angleDeg: LD.round(angle, 2), elevFt: null, elevSource: 'auto' };
+      const f = parkingField(el);
+      if (f.stallsTotal === 0) throw new Error(`A ${F.ft(lengthFt, 0)} row is too short for any stalls after the end islands and aisles.`);
+      el.elevFt = avgGround(f.polygon);
+      st.elements.push(el);
+      const d = describeEl(el);
+      return {
+        summary: `Added ${id} "${el.name}": ${F.n(f.stallsTotal)} stalls (${F.n(f.stallsStd)} standard + ${F.n(f.stallsAda)} accessible, ${f.stallsVan} van), ` +
+          `${F.n(el.lengthFt)} x ${F.n(f.depthFt)} ft, ${rows} rows. ` +
+          (i.stalls && f.stallsTotal < i.stalls ? `Only ${f.stallsTotal} of the ${i.stalls} requested fit. ` : '') +
+          (d.insideParkingArea ? 'Inside the parking setbacks.' : 'It crosses a parking setback line.'),
+        data: { element: d },
+        changedIds: [id],
+      };
+    },
+  });
+
+  def({
+    name: 'runGrading',
+    title: 'Run grading',
+    description: 'Compute earthwork for the current layout on a 5 ft grid: building pads flat at their finished floor (less an 1.17 ft slab section), ' +
+      'parking at 1.5% slope (less a 1.0 ft pavement section), and slopes tying back to existing ground at slopeRatio:1. ' +
+      'Returns cut, fill and net in cubic yards, retaining walls where slopes do not fit, and grading that crosses the property line. ' +
+      'Optional balanceBuildingId: first find that building\'s finished floor that makes cut and fill balance, and set it.',
+    mutates: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slopeRatio: { type: 'number', minimum: 1.5, maximum: 10, default: 3, description: 'Side slope back to existing ground, horizontal:1 vertical (default 3).' },
+        shrinkPct: { type: 'number', minimum: 0, maximum: 40, default: 10, description: 'Cut shrink factor, % (default 10): net = cut x (1 - shrink) - fill.' },
+        balanceBuildingId: { type: 'string', description: 'Optional: building whose finished floor is adjusted so earthwork balances.', 'x-ref': 'building' },
+      },
+    },
+    testInput: { slopeRatio: 3, shrinkPct: 10 },
+    run(ctx, i) {
+      const st = app.state, site = app.site;
+      if (!st.elements.length) throw new Error('Nothing to grade yet: add a building or parking first.');
+      const crit = Object.assign({}, GR.CRITERIA, { tieInSlopeHtoV: i.slopeRatio, shrinkPct: i.shrinkPct });
+      const balance = i.balanceBuildingId ? getEl(i.balanceBuildingId) : null;
+      if (balance && balance.type !== 'building') throw new Error(i.balanceBuildingId + ' is not a building.');
+      const build = (balancing) => st.elements.map((el) => {
+        if (el.type === 'building') {
+          const ring = G.rectRing(el.cxFt, el.cyFt, el.widthFt + 2 * crit.padOverbuildFt, el.depthFt + 2 * crit.padOverbuildFt, el.rotationDeg);
+          const free = balancing && el === balance;
+          return GR.flatPad(el.id, ring, { name: el.name, elevFt: free ? null : el.padElevFt, ffeOffsetFt: 0, sectionFt: crit.sectionBuildingSlabFt });
+        }
+        const f = parkingField(el);
+        return GR.planarPad(el.id, f.polygon, { name: el.name, origin: [el.cxFt, el.cyFt], dirDeg: el.angleDeg + 90, slopePct: crit.parkingSlopePct, elevAtOriginFt: el.elevFt, sectionFt: crit.sectionStandardAsphaltFt, category: 'parking' });
+      });
+      // Grid: all footprints plus room for the side slopes, clipped to the terrain.
+      const rings = build(false).map((o) => o.region[0]);
+      const bb = G.bbox(rings);
+      const relief = Math.max(10, site.elevMaxFt - site.elevMinFt);
+      const margin = Math.min(500, crit.tieInSlopeHtoV * relief + 50);
+      const ext = site.extent;
+      const box = { minX: Math.max(ext.xMin, bb.minX - margin), minY: Math.max(ext.yMin, bb.minY - margin), maxX: Math.min(ext.xMax, bb.maxX + margin), maxY: Math.min(ext.yMax, bb.maxY + margin) };
+      let cell = crit.gridCellFt;
+      while (((box.maxX - box.minX) / cell) * ((box.maxY - box.minY) / cell) > 1.5e6) cell += 1;
+      const spec = Grid.specForBBox(box, cell);
+      const existing = Grid.resample(site.terrain, spec);
+      let note = '';
+      if (balance) {
+        const m0 = GR.makeModel({ existing, objects: build(true), criteria: crit, parcel: site.parcelRing });
+        const ground = avgGround(elementRing(balance));
+        const sol = GR.solveFfe(m0, { targetNetCf: 0, minFt: ground - 40, maxFt: ground + 40 });
+        balance.padElevFt = LD.round(sol.ffeFt, 1);
+        balance.padElevSource = 'balanced';
+        note = sol.bound === 'none'
+          ? `Finished floor of ${balance.id} set to ${F.ft(balance.padElevFt)} to balance cut and fill (rounded to 0.1 ft, so a small remainder is left). `
+          : `Could not fully balance: ${balance.id} finished floor set to the limit of ${F.ft(balance.padElevFt)} (40 ft from existing ground). `;
+      }
+      const m = GR.makeModel({ existing, objects: build(false), criteria: crit, parcel: site.parcelRing });
+      const r = GR.evaluateModel(m, 0);
+      const cy = (cf) => Math.round(cf / 27);
+      const cat = (name) => r.byCategory.find((c) => c.category === name) || { cutCf: 0, fillCf: 0, areaSf: 0 };
+      const walls = r.walls.map((w) => ({ id: w.id, lengthFt: Math.round(w.lengthFt), maxHeightFt: LD.round(w.maxHeightFt, 1), between: w.betweenObjectIds }));
+      const res = {
+        cutCy: cy(r.cutCf), fillCy: cy(r.fillCf), netCy: cy(r.netCf),
+        netMeaning: r.netCf >= 0 ? 'surplus (export)' : 'shortfall (import)',
+        shrinkPct: crit.shrinkPct, slopeRatio: crit.tieInSlopeHtoV, gridCellFt: cell,
+        byPart: {
+          buildingPads: { cutCy: cy(cat('pad').cutCf), fillCy: cy(cat('pad').fillCf) },
+          parking: { cutCy: cy(cat('parking').cutCf), fillCy: cy(cat('parking').fillCf) },
+          sideSlopes: { cutCy: cy(cat('tieIn').cutCf), fillCy: cy(cat('tieIn').fillCf) },
+        },
+        maxCutFt: LD.round(r.maxCutFt, 1), maxFillFt: LD.round(r.maxFillFt, 1),
+        disturbedAc: LD.round(r.disturbedSf / 43560, 2),
+        walls, offsiteGradingSf: Math.round(r.offsiteAreaSf), offsiteMaxDepthFt: LD.round(r.offsiteMaxDeltaFt, 1),
+        pads: st.elements.map((e) => ({ id: e.id, elevationFt: e.type === 'building' ? e.padElevFt : e.elevFt })),
+        stale: false,
+      };
+      st.grading = res;
+      st.checks && (st.checks.stale = true);
+      app.display.grading = { spec, existing: existing.data, proposed: r.proposed, wallHeight: r.wallHeight };
+      const wallTxt = walls.length ? `${walls.length} retaining wall${walls.length > 1 ? 's' : ''} needed (tallest ${F.ft(walls[0].maxHeightFt)}). ` : 'No retaining walls needed. ';
+      const offTxt = r.offsiteAreaSf > 0 ? `Side slopes cross the property line over ${F.sf(r.offsiteAreaSf)} (up to ${F.ft(r.offsiteMaxDeltaFt)} deep): grading easement or a wall needed. ` : '';
+      return {
+        summary: note + `Cut ${F.cy(res.cutCy)}, fill ${F.cy(res.fillCy)}; net ${F.cy(Math.abs(res.netCy))} ${res.netMeaning} after ${crit.shrinkPct}% shrink. ` +
+          `Deepest cut ${F.ft(res.maxCutFt)}, deepest fill ${F.ft(res.maxFillFt)}; ${F.ac(res.disturbedAc)} disturbed. ` + wallTxt + offTxt,
+        data: res,
+        changedIds: balance ? [balance.id] : [],
+        keepResults: true,
+      };
+    },
+  });
+
+  def({
+    name: 'checkSetbacks',
+    title: 'Check setbacks',
+    description: 'Check every building and parking field against the zoning: distance to each property line versus the required setback ' +
+      '(front setbacks are measured from the assumed road right-of-way), building height versus the maximum, and lot coverage. ' +
+      'Returns pass/fail per check with the ordinance section.',
+    mutates: false,
+    inputSchema: { type: 'object', properties: {} },
+    testInput: {},
+    run() {
+      const site = app.site, st = app.state;
+      if (!st.elements.length) throw new Error('Nothing to check yet: add a building or parking first.');
+      const rows = [];
+      for (const el of st.elements) {
+        const ring = elementRing(el);
+        const isB = el.type === 'building';
+        const outside = !G.ringInsidePoly(ring, site.parcelPoly);
+        if (outside) {
+          rows.push({ id: el.id, check: 'Inside property', pass: false, valueFt: null, limitFt: null, section: null, message: `${el.id} "${el.name}" extends outside the property line.` });
+        }
+        let worst = null;
+        for (const e of site.edges) {
+          const req = isB ? e.buildingSetbackFt : e.parkingSetbackFt;
+          if (req == null || req <= 0) continue;
+          const d = outside && !G.ringsTouch(ring, site.parcelRing) ? 0 : G.ringSegDist(ring, e.a, e.b);
+          const margin = d - req;
+          if (!worst || margin < worst.margin) worst = { e, d, req, margin };
+        }
+        if (worst) {
+          const e = worst.e, pass = worst.margin >= -0.05;
+          const zoneReq = isB ? { front: site.zv('frontSetbackFt'), side: site.zv('sideSetbackFt'), rear: site.zv('rearSetbackFt') }[e.type] : (e.type === 'front' ? site.zv('parkingSetbackFromRowFt') : site.zv('parkingSetbackSideRearFt'));
+          const how = e.type === 'front' && e.rowInsetFt > 0 ? ` (${F.ft(zoneReq, 0)} from the assumed road right-of-way + ${F.ft(e.rowInsetFt)} to the property line)` : '';
+          rows.push({
+            id: el.id, check: (isB ? 'Building' : 'Parking') + ' setback', pass,
+            valueFt: LD.round(worst.d, 1), limitFt: LD.round(worst.req, 1), marginFt: LD.round(worst.margin, 1),
+            section: isB ? e.section : e.parkingSection, edge: LD.site.edgeLabel(e),
+            message: `${el.id} is ${F.ft(worst.d)} from the ${LD.site.edgeLabel(e)}; ${F.ft(worst.req)} required${how}. ` +
+              (pass ? `Passes with ${F.ft(worst.margin)} to spare.` : `Fails by ${F.ft(-worst.margin)}.`),
+          });
+        }
+        if (isB) {
+          const maxH = site.zv('maxHeightFt');
+          if (maxH != null) rows.push({
+            id: el.id, check: 'Building height', pass: el.heightFt <= maxH, valueFt: el.heightFt, limitFt: maxH, section: site.zsec('maxHeightFt'),
+            message: `${el.id} is ${F.ft(el.heightFt, 0)} tall; max ${F.ft(maxH, 0)}.`,
+          });
+        }
+        for (const w of (site.features.wetlands && site.features.wetlands.items) || [])
+          if (G.ringsTouch(ring, w.polygon.outer))
+            rows.push({ id: el.id, check: 'Wetland (mapped)', pass: false, informational: true, section: null, message: `${el.id} overlaps a mapped NWI wetland (${w.wetlandType}). Planning-level mapping: a delineation is needed.` });
+      }
+      for (let a = 0; a < st.elements.length; a++)
+        for (let b = a + 1; b < st.elements.length; b++)
+          if (G.ringsTouch(elementRing(st.elements[a]), elementRing(st.elements[b])))
+            rows.push({ id: st.elements[a].id + '/' + st.elements[b].id, check: 'Overlap', pass: false, section: null, message: `${st.elements[a].id} and ${st.elements[b].id} overlap.` });
+      const cov = coverage();
+      if (cov.maxPct != null && cov.buildingSf > 0) rows.push({
+        id: 'site', check: 'Lot coverage', pass: cov.pct <= cov.maxPct, valuePct: LD.round(cov.pct, 2), limitPct: cov.maxPct, section: site.zsec('maxLotCoveragePct'),
+        message: `Buildings cover ${F.n(cov.pct, 1)}% of the lot (${F.sf(cov.buildingSf)}); max ${cov.maxPct}%.`,
+      });
+      const failing = rows.filter((r) => !r.pass && !r.informational);
+      st.checks = { rows, failing: failing.length, total: rows.filter((r) => !r.informational).length, stale: false, zoningVerified: !!site.zoning.verified };
+      return {
+        summary: (failing.length ? `${failing.length} of ${st.checks.total} checks FAIL: ` + failing.map((r) => r.message).join(' ') : `All ${st.checks.total} checks pass.`) +
+          (site.zoning.verified ? '' : ' (Zoning values are unverified; confirm with the township.)'),
+        data: st.checks,
+        changedIds: [],
+        keepResults: true,
+      };
+    },
+  });
+
+  def({
+    name: 'getSiteSummary',
+    title: 'Site summary',
+    description: 'Read-only. The site, parcel, zoning limits, buildable area (with a suggested centre point), existing ground range, ' +
+      'all current elements, and the latest grading and setback results. Coordinates are PA South State Plane feet (x = east, y = north).',
+    mutates: false,
+    readOnly: true,
+    inputSchema: { type: 'object', properties: {} },
+    testInput: {},
+    run() { return { summary: 'Site summary returned.', data: siteSummary() }; },
+  });
+
+  def({
+    name: 'listElements',
+    title: 'List elements',
+    description: 'Read-only. Every building and parking field with id, size, position, elevation and stall counts.',
+    mutates: false,
+    readOnly: true,
+    inputSchema: { type: 'object', properties: {} },
+    testInput: {},
+    run() {
+      const list = app.state.elements.map(describeEl);
+      return { summary: list.length ? list.map((e) => `${e.id} ${e.name}`).join(', ') : 'No elements yet.', data: { elements: list } };
+    },
+  });
+
+  function siteSummary() {
+    const s = app.site, md = s.meta, z = s.zoning;
+    const bb = s.parcelBBox;
+    const envBB = s.buildingEnvelope.length ? G.bbox(s.buildingEnvelope.map((p) => p.outer)) : null;
+    const vals = {};
+    for (const [k, v] of Object.entries(z.values || {})) vals[k] = v.value;
+    return {
+      site: md.siteName, address: md.address, municipality: md.municipality, county: md.county, parcelId: md.parcelId,
+      coordinateSystem: 'PA South State Plane (EPSG:2272), US survey feet; x = east, y = north; elevations NAVD88 ft',
+      parcel: {
+        areaAc: LD.round(s.parcelAreaSf / 43560, 2),
+        bbox: { minX: Math.round(bb.minX), minY: Math.round(bb.minY), maxX: Math.round(bb.maxX), maxY: Math.round(bb.maxY) },
+        frontage: [...new Set(s.edges.filter((e) => e.type === 'front').map((e) => e.road))],
+      },
+      buildableArea: {
+        buildingAc: s.pkg.derived.buildingEnvelopeAreaAc, parkingAc: s.pkg.derived.parkingEnvelopeAreaAc,
+        buildingBBox: envBB && { minX: Math.round(envBB.minX), minY: Math.round(envBB.minY), maxX: Math.round(envBB.maxX), maxY: Math.round(envBB.maxY) },
+        suggestedBuildingCenter: s.buildingCenter.map((v) => Math.round(v)),
+      },
+      existingGroundFt: { min: LD.round(s.elevMinFt, 1), max: LD.round(s.elevMaxFt, 1) },
+      zoning: { district: z.district, name: z.districtName, verified: !!z.verified, limits: vals },
+      elements: app.state.elements.map(describeEl),
+      lotCoveragePct: LD.round(coverage().pct, 2),
+      lastGrading: app.state.grading,
+      lastChecks: app.state.checks && { failing: app.state.checks.failing, total: app.state.checks.total, stale: app.state.checks.stale, failures: app.state.checks.rows.filter((r) => !r.pass).map((r) => r.message) },
+      warnings: md.warnings,
+    };
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // Running commands, history and undo
+  // ----------------------------------------------------------------------------------------------
+  const byName = {};
+  for (const c of commands) byName[c.name] = c;
+
+  /** Run a command. Returns {ok, summary, data, entry} or {ok:false, error}. Never throws. */
+  function execute(name, rawInput, source) {
+    const cmd = byName[name];
+    if (!cmd) return { ok: false, error: 'Unknown command "' + name + '".' };
+    if (!app.site) return { ok: false, error: 'Load a site package first.' };
+    const before = JSON.stringify(app.state);
+    const beforeDisplay = app.display.grading;
+    let input, res;
+    try {
+      input = cleanInput(cmd.inputSchema, rawInput);
+      res = cmd.run({}, input);
+    } catch (e) {
+      app.state = JSON.parse(before); // nothing half-done survives an error
+      app.display.grading = beforeDisplay;
+      return { ok: false, error: e.message || String(e) };
+    }
+    let entry = null;
+    if (cmd.mutates) {
+      if (!res.keepResults) invalidateResults();
+      entry = { seq: ++app.seq, name, title: cmd.title, input, summary: res.summary, source: source || 'test', before };
+      app.history.push(entry);
+    }
+    app.emit('change', { name, result: res, entry });
+    return { ok: true, summary: res.summary, data: res.data, entry };
+  }
+
+  /** Undo the step with this seq and every step after it. */
+  function undoTo(seq) {
+    const idx = app.history.findIndex((h) => h.seq === seq);
+    if (idx < 0) return { ok: false, error: 'That step is no longer in the history.' };
+    const undone = app.history.splice(idx);
+    app.state = JSON.parse(undone[0].before);
+    app.display.grading = null;
+    if (app.state.grading) app.state.grading.stale = true;
+    app.emit('change', { undo: undone.map((u) => u.seq) });
+    return { ok: true, undone: undone.length };
+  }
+
+  LD.commands = { list: commands, byName, execute, undoTo, describeEl, elementRing, parkingField, siteSummary, cleanInput };
+})();
+
+</script>
+<script>/* selfcheck.js */
+/* selfcheck.js: hand-calculation checks of the app's engineering math (run from Test mode).
+ * Expected values come from groundwork/docs/reference/engineering-criteria.md (T1-T9, T13) and simple
+ * geometry worked out by hand. Each check states the hand calc in plain English.
+ */
+'use strict';
+(function () {
+  const GR = LD.grading, P = LD.parking, G = LD.geom, Grid = LD.grid;
+  const C = Object.assign({}, GR.CRITERIA);
+
+  function gridFrom(x0, y0, w, h, cell, f) {
+    const g = Grid.make({ x0, y0, cellFt: cell, nx: Math.round(w / cell), ny: Math.round(h / cell) });
+    for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) g.data[j * g.nx + i] = f(x0 + (i + 0.5) * cell, y0 + (j + 0.5) * cell);
+    return g;
+  }
+  const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  const within = (actual, expected, tol) => Math.abs(actual - expected) <= tol;
+
+  const checks = [
+    {
+      id: 'T1', title: 'Flat pad fill',
+      handCalc: '100 x 100 ft pad at 102.00 on flat ground at 100.00: 100 x 100 x 2 = 20,000 CF = 740.74 CY',
+      run() {
+        const ex = gridFrom(-50, -50, 200, 200, 1, () => 100);
+        const r = GR.evaluateModel(GR.makeModel({ existing: ex, objects: [GR.flatPad('pad', rect(0, 0, 100, 100), { elevFt: 102 })], criteria: C, daylight: false, sections: false }), 0);
+        return { got: `${LD.fmt.n(r.fillCf / 27, 2)} CY fill, ${LD.fmt.n(r.cutCf / 27, 2)} CY cut`, pass: within(r.fillCf, 20000, 100) && r.cutCf === 0 };
+      },
+    },
+    {
+      id: 'T2', title: 'Pad on a tilted plane',
+      handCalc: 'Ground z = 100 + 0.02x; 200 x 100 ft pad at 102: half in fill, half in cut, 10,000 CF (370.37 CY) each',
+      run() {
+        const ex = gridFrom(-50, -50, 300, 200, 2, (x) => 100 + 0.02 * x);
+        const r = GR.evaluateModel(GR.makeModel({ existing: ex, objects: [GR.flatPad('pad', rect(0, 0, 200, 100), { elevFt: 102 })], criteria: Object.assign({}, C, { shrinkPct: 0 }), daylight: false, sections: false }), 0);
+        return { got: `${LD.fmt.n(r.fillCf / 27, 2)} CY fill, ${LD.fmt.n(r.cutCf / 27, 2)} CY cut`, pass: within(r.fillCf, 10000, 50) && within(r.cutCf, 10000, 50) };
+      },
+    },
+    {
+      id: 'T3', title: 'Pad with 3:1 side slopes',
+      handCalc: '20,000 CF pad + 4 side wedges (2,400 CF) + 4 corner cones (75.40 CF) = 22,475.40 CF = 832.42 CY',
+      run() {
+        const ex = gridFrom(-50, -50, 200, 200, 1, () => 100);
+        const r = GR.evaluateModel(GR.makeModel({ existing: ex, objects: [GR.flatPad('pad', rect(0, 0, 100, 100), { elevFt: 102 })], criteria: C, daylight: true, sections: false }), 0);
+        return { got: `${LD.fmt.n(r.fillCf / 27, 2)} CY fill, ${r.walls.length} walls`, pass: within(r.fillCf, 22475.4, 22475.4 * 0.005) && r.cutCf === 0 && r.walls.length === 0 };
+      },
+    },
+    {
+      id: 'T4', title: 'Retaining wall where slopes do not fit',
+      handCalc: 'Pads at 100 and 120 ft, 50 ft apart: a 3:1 slope only drops 50/3 = 16.67 ft, so a 120 - 16.67 - 100 = 3.33 ft wall is needed',
+      run() {
+        const ex = gridFrom(-60, -60, 370, 220, 1, () => 100);
+        const objs = [GR.flatPad('A', rect(0, 0, 100, 100), { elevFt: 100 }), GR.flatPad('B', rect(150, 0, 250, 100), { elevFt: 120 })];
+        const r = GR.evaluateModel(GR.makeModel({ existing: ex, objects: objs, criteria: C, daylight: true, sections: false }), 0);
+        const w = r.walls.slice().sort((a, b) => b.maxHeightFt - a.maxHeightFt)[0];
+        return { got: w ? `wall ${LD.fmt.n(w.maxHeightFt, 2)} ft high, ${LD.fmt.n(w.lengthFt, 0)} ft long` : 'no wall', pass: !!w && within(w.maxHeightFt, 3.33, 0.3) && w.lengthFt > 90 && w.lengthFt < 125 };
+      },
+    },
+    {
+      id: 'T5', title: 'Balance finished floor (10% shrink)',
+      handCalc: 'Ground z = 100 + 0.02x, 400 x 300 ft pad: balance with 10% shrink at FFE = 110 + 4(sqrt(0.9) - 1)/(sqrt(0.9) + 1) = 109.89 ft',
+      run() {
+        const ex = gridFrom(200, -50, 600, 400, 2, (x) => 100 + 0.02 * x);
+        const m = GR.makeModel({ existing: ex, objects: [GR.flatPad('pad', rect(300, 0, 700, 300), { ffeOffsetFt: 0 })], criteria: Object.assign({}, C, { shrinkPct: 10 }), daylight: false, sections: false });
+        const s = GR.solveFfe(m, { targetNetCf: 0, minFt: 100, maxFt: 120 });
+        return { got: `FFE ${LD.fmt.n(s.ffeFt, 3)} ft`, pass: s.achieved && within(s.ffeFt, 109.89, 0.02) };
+      },
+    },
+    {
+      id: 'T6', title: 'Balance finished floor (no shrink)',
+      handCalc: 'Same pad without shrink: cut equals fill when the floor is at the average ground, 100 + 0.02 x 500 = 110.00 ft',
+      run() {
+        const ex = gridFrom(200, -50, 600, 400, 2, (x) => 100 + 0.02 * x);
+        const m = GR.makeModel({ existing: ex, objects: [GR.flatPad('pad', rect(300, 0, 700, 300), { ffeOffsetFt: 0 })], criteria: Object.assign({}, C, { shrinkPct: 0 }), daylight: false, sections: false });
+        const s = GR.solveFfe(m, { targetNetCf: 0, minFt: 100, maxFt: 120 });
+        return { got: `FFE ${LD.fmt.n(s.ffeFt, 3)} ft`, pass: within(s.ffeFt, 110, 0.02) };
+      },
+    },
+    {
+      id: 'T7', title: 'Accessible stall counts (ADA Table 208.2)',
+      handCalc: '25 stalls -> 1, 100 -> 4, 150 -> 5, 501 -> 11 (2%), 1,200 -> 22 (20 + 1 per 100 over 1,000); vans: 1 per 6 accessible',
+      run() {
+        const got = [25, 100, 150, 501, 1200].map(P.adaRequired);
+        const vans = [1, 6, 7].map(P.adaVanRequired);
+        return { got: got.join(', ') + '; vans ' + vans.join(', '), pass: got.join() === '1,4,5,11,22' && vans.join() === '1,1,2' };
+      },
+    },
+    {
+      id: 'T9', title: 'Parking module',
+      handCalc: 'Two rows of 10 x 20 ft stalls on a 24 ft aisle = 64 ft deep; 300 ft of row with no islands holds 30 stalls per side = 60',
+      run() {
+        const c = P.DEFAULTS;
+        const depth = P.moduleDepthFt(c);
+        const perSide = Math.floor(300 / c.carStallWidthFt + 1e-9);
+        return { got: `${depth} ft deep, ${2 * perSide} stalls`, pass: depth === 64 && 2 * perSide === 60 };
+      },
+    },
+    {
+      id: 'S1', title: 'Setback distance to a lot line',
+      handCalc: 'Lot line y = 0; 200 x 100 ft building centred at y = 150 has its south face at y = 100: 100 ft away. Required 100 ft: passes. Moved to y = 140: 90 ft, fails by 10 ft',
+      run() {
+        const line = [[0, 0], [1000, 0]];
+        const d1 = G.ringSegDist(G.rectRing(500, 150, 200, 100, 0), line[0], line[1]);
+        const d2 = G.ringSegDist(G.rectRing(500, 140, 200, 100, 0), line[0], line[1]);
+        const d3 = G.ringSegDist(G.rectRing(500, 300, 200, 100, 45), line[0], line[1]);
+        const exp3 = 300 - Math.hypot(100, 50) * Math.sin((45 + Math.atan2(50, 100) * 180 / Math.PI) * Math.PI / 180);
+        return { got: `${LD.fmt.n(d1, 2)} ft, ${LD.fmt.n(d2, 2)} ft; rotated 45 deg: ${LD.fmt.n(d3, 2)} ft (hand calc ${LD.fmt.n(exp3, 2)})`, pass: within(d1, 100, 1e-6) && within(d2, 90, 1e-6) && within(d3, exp3, 1e-6) };
+      },
+    },
+    {
+      id: 'S2', title: 'Building inside / outside a buildable area',
+      handCalc: 'Buildable area 1,000 x 600 ft: a 600 x 400 ft building at its centre fits; shifted 250 ft east it crosses the edge',
+      run() {
+        const env = { outer: rect(0, 0, 1000, 600), holes: [] };
+        const a = G.ringInsidePoly(G.rectRing(500, 300, 600, 400, 0), env);
+        const b = G.ringInsidePoly(G.rectRing(750, 300, 600, 400, 0), env);
+        return { got: `centred: ${a ? 'fits' : 'does not fit'}; shifted: ${b ? 'fits' : 'does not fit'}`, pass: a && !b };
+      },
+    },
+    {
+      id: 'T13', title: 'Metres to US survey feet',
+      handCalc: '150.000 m x 3937/1200 = 492.125 ft',
+      run() { const v = 150 * LD.units.FTUS_PER_M; return { got: LD.fmt.n(v, 4) + ' ft', pass: within(v, 492.125, 0.001) }; },
+    },
+  ];
+
+  function runAll() {
+    return checks.map((c) => {
+      const t0 = performance.now();
+      try {
+        const r = c.run();
+        return { id: c.id, title: c.title, handCalc: c.handCalc, got: r.got, pass: !!r.pass, ms: Math.round(performance.now() - t0) };
+      } catch (e) {
+        return { id: c.id, title: c.title, handCalc: c.handCalc, got: 'error: ' + e.message, pass: false, ms: 0 };
+      }
+    });
+  }
+
+  LD.selfcheck = { checks, runAll };
+})();
+
+</script>
+<script>/* view3d.js */
+/* view3d.js: the 3D view, drawn with the browser's built-in WebGL (no libraries).
+ *
+ * - Ground: a mesh from the site's elevation grid (or the graded surface after runGrading).
+ * - Everything flat (aerial photo or shaded relief, property line, setbacks, roads, streams,
+ *   wetlands, parking striping, cut/fill colours) is painted onto one large 2D canvas that is draped
+ *   over the ground as a texture, so lines follow the terrain and stay crisp.
+ * - Buildings are boxes standing on their finished floor elevation.
+ * Local 3D axes: X = east, Y = up, Z = south; positions are relative to the site centre.
+ */
+'use strict';
+(function () {
+  const G = LD.geom, Grid = LD.grid;
+
+  // ---------------------------------------------------------------------------------- matrices
+  const M = {
+    persp(fovy, aspect, near, far) {
+      const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+      return new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, 2 * far * near * nf, 0]);
+    },
+    lookAt(e, c, up) {
+      let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2];
+      let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+      let xx = up[1] * zz - up[2] * zy, xy = up[2] * zx - up[0] * zz, xz = up[0] * zy - up[1] * zx;
+      l = Math.hypot(xx, xy, xz) || 1; xx /= l; xy /= l; xz /= l;
+      const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+      return new Float32Array([xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0,
+        -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1]);
+    },
+    mul(a, b) {
+      const o = new Float32Array(16);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        let s = 0;
+        for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k];
+        o[i * 4 + j] = s;
+      }
+      return o;
+    },
+  };
+
+  const VS = `attribute vec3 aPos; attribute vec3 aNrm; attribute vec2 aUv;
+    uniform mat4 uMVP; varying vec3 vN; varying vec2 vUv;
+    void main(){ vN = aNrm; vUv = aUv; gl_Position = uMVP * vec4(aPos, 1.0); }`;
+  const FS = `precision mediump float; varying vec3 vN; varying vec2 vUv;
+    uniform sampler2D uTex; uniform float uUseTex; uniform vec4 uColor; uniform vec3 uLight;
+    void main(){
+      vec3 n = normalize(vN);
+      float l = 0.50 + 0.50 * max(dot(n, uLight), 0.0);
+      vec4 base = mix(uColor, texture2D(uTex, vUv), uUseTex);
+      gl_FragColor = vec4(base.rgb * l, 1.0);
+    }`;
+
+  const V = (LD.view = {
+    exaggeration: 1.5,
+    baseLayer: 'aerial',       // 'aerial' or 'relief'
+    showCutFill: true,
+    cam: { yaw: 0.35, pitch: 0.75, dist: 3000, target: [0, 0, 0] },
+  });
+
+  let gl, canvas, labelsEl, prog, loc, isGL2 = false;
+  let terrainBuf = null, terrainIdx = null, terrainCount = 0, mesh = null;
+  let boxBuf = null, boxCount = 0, boxDraws = [];
+  let tex = null, drapeCanvas = null, drapeScale = 1;
+  let site = null, center = [0, 0], zRef = 0;
+  let aerialImg = null, reliefCanvas = null;
+  let needsRender = false, labels = [];
+
+  V.init = function (container) {
+    canvas = document.createElement('canvas');
+    canvas.className = 'gl';
+    container.appendChild(canvas);
+    labelsEl = document.createElement('div');
+    labelsEl.className = 'labels';
+    container.appendChild(labelsEl);
+    gl = canvas.getContext('webgl2', { antialias: true });
+    isGL2 = !!gl;
+    if (!gl) {
+      gl = canvas.getContext('webgl', { antialias: true }) || canvas.getContext('experimental-webgl');
+      if (!gl) throw new Error('This browser cannot show 3D graphics (WebGL is turned off or unavailable).');
+      if (!gl.getExtension('OES_element_index_uint')) throw new Error('This browser\'s WebGL is too limited for the terrain mesh.');
+    }
+    prog = makeProgram(VS, FS);
+    loc = {
+      aPos: gl.getAttribLocation(prog, 'aPos'), aNrm: gl.getAttribLocation(prog, 'aNrm'), aUv: gl.getAttribLocation(prog, 'aUv'),
+      uMVP: gl.getUniformLocation(prog, 'uMVP'), uTex: gl.getUniformLocation(prog, 'uTex'), uUseTex: gl.getUniformLocation(prog, 'uUseTex'),
+      uColor: gl.getUniformLocation(prog, 'uColor'), uLight: gl.getUniformLocation(prog, 'uLight'),
+    };
+    gl.enable(gl.DEPTH_TEST);
+    gl.clearColor(0.067, 0.078, 0.094, 1);
+    drapeCanvas = document.createElement('canvas');
+    attachControls();
+    new ResizeObserver(() => V.render()).observe(container);
+    V.render();
+  };
+
+  function makeProgram(vs, fs) {
+    const sh = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('Shader error: ' + gl.getShaderInfoLog(s));
+      return s;
+    };
+    const p = gl.createProgram();
+    gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Shader link error: ' + gl.getProgramInfoLog(p));
+    return p;
+  }
+
+  // ---------------------------------------------------------------------------------- site setup
+  V.setSite = function (s) {
+    site = s;
+    const pb = s.parcelBBox;
+    center = [(pb.minX + pb.maxX) / 2, (pb.minY + pb.maxY) / 2];
+    zRef = s.elevMinFt;
+    aerialImg = null; reliefCanvas = null;
+    V.baseLayer = s.imagery ? 'aerial' : 'relief';
+    if (s.imagery) {
+      const img = new Image();
+      img.onload = () => { aerialImg = img; V.refresh(); };
+      img.src = 'data:' + (s.imagery.mime || 'image/jpeg') + ';base64,' + s.imagery.data;
+    }
+    reliefCanvas = makeRelief(s.terrain);
+    V.resetView();
+    V.refresh();
+  };
+
+  V.resetView = function () {
+    if (!site) return;
+    const pb = site.parcelBBox;
+    V.cam.target = [0, ((site.elevMinFt + site.elevMaxFt) / 2 - zRef) * V.exaggeration, 0];
+    V.cam.dist = Math.max(pb.maxX - pb.minX, pb.maxY - pb.minY) * 1.25;
+    V.cam.yaw = 0.35; V.cam.pitch = 0.75;
+    V.render();
+  };
+  V.topView = function () { V.cam.pitch = 1.5; V.cam.yaw = 0; V.render(); };
+
+  /** Rebuild everything that depends on the design (call after any change). */
+  V.refresh = function () {
+    if (!site || !gl) return;
+    buildTerrain();
+    buildBoxes();
+    drawDrape();
+    V.render();
+  };
+
+  // ---------------------------------------------------------------------------------- terrain mesh
+  function heightAt(x, y) {
+    const d = LD.app.display.grading;
+    if (d) {
+      const s = d.spec;
+      const fx = (x - s.x0) / s.cellFt, fy = (y - s.y0) / s.cellFt;
+      if (fx >= 0.5 && fy >= 0.5 && fx <= s.nx - 0.5 && fy <= s.ny - 0.5)
+        return Grid.sample({ x0: s.x0, y0: s.y0, cellFt: s.cellFt, nx: s.nx, ny: s.ny, data: d.proposed }, x, y);
+    }
+    return Grid.sample(site.terrain, x, y);
+  }
+
+  function buildTerrain() {
+    const t = site.terrain, ext = site.extent;
+    const step = Math.max(1, Math.ceil(Math.max(t.nx, t.ny) / 560));
+    const nx = Math.floor((t.nx - 1) / step) + 1, ny = Math.floor((t.ny - 1) / step) + 1;
+    const cell = t.cellFt * step, ex = V.exaggeration;
+    const H = new Float32Array(nx * ny);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const x = t.x0 + (i * step + 0.5) * t.cellFt, y = t.y0 + (j * step + 0.5) * t.cellFt;
+      H[j * nx + i] = heightAt(x, y);
+    }
+    const data = new Float32Array(nx * ny * 8);
+    const w = ext.xMax - ext.xMin, h = ext.yMax - ext.yMin;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const k = j * nx + i, o = k * 8;
+      const x = t.x0 + (i * step + 0.5) * t.cellFt, y = t.y0 + (j * step + 0.5) * t.cellFt;
+      const hl = H[j * nx + Math.max(0, i - 1)], hr = H[j * nx + Math.min(nx - 1, i + 1)];
+      const hd = H[Math.max(0, j - 1) * nx + i], hu = H[Math.min(ny - 1, j + 1) * nx + i];
+      // normal of the surface Y = h(x, -z)·ex in local axes (Z points south)
+      let nX = -((hr - hl) * ex) / (2 * cell), nZ = ((hu - hd) * ex) / (2 * cell), nY = 1;
+      const l = Math.hypot(nX, nY, nZ);
+      data[o] = x - center[0]; data[o + 1] = (H[k] - zRef) * ex; data[o + 2] = -(y - center[1]);
+      data[o + 3] = nX / l; data[o + 4] = nY / l; data[o + 5] = nZ / l;
+      data[o + 6] = (x - ext.xMin) / w; data[o + 7] = (ext.yMax - y) / h;
+    }
+    if (!mesh || mesh.nx !== nx || mesh.ny !== ny) {
+      const idx = new Uint32Array((nx - 1) * (ny - 1) * 6);
+      let p = 0;
+      for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+        const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+        idx[p++] = a; idx[p++] = c; idx[p++] = b; idx[p++] = b; idx[p++] = c; idx[p++] = d;
+      }
+      terrainIdx = terrainIdx || gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainIdx);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+      terrainCount = idx.length;
+      mesh = { nx, ny };
+    }
+    terrainBuf = terrainBuf || gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, terrainBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+  }
+
+  // ---------------------------------------------------------------------------------- buildings
+  function buildBoxes() {
+    const ex = V.exaggeration;
+    const verts = [];
+    boxDraws = [];
+    labels = [];
+    const P = (x, y, z) => [x - center[0], (z - zRef) * ex, -(y - center[1])];
+    const push = (p, n) => verts.push(p[0], p[1], p[2], n[0], n[1], n[2], 0, 0);
+    for (const el of LD.app.state ? LD.app.state.elements : []) {
+      const ring = LD.commands.elementRing(el);
+      if (el.type !== 'building') {
+        const c = G.centroid(ring);
+        labels.push({ text: el.id + '  ' + el.name, pos: P(c[0], c[1], heightAt(c[0], c[1]) + 3), kind: 'parking' });
+        continue;
+      }
+      const start = verts.length / 8;
+      const z0 = el.padElevFt, z1 = el.padElevFt + el.heightFt;
+      // Walls go a little below the floor so they never float above sloping ground.
+      const zb = Math.min(z0, ...ring.map((p) => heightAt(p[0], p[1]))) - 2;
+      for (let k = 0; k < 4; k++) {
+        const a = ring[k], b = ring[(k + 1) % 4];
+        const n = [b[1] - a[1], 0, b[0] - a[0]];
+        const l = Math.hypot(n[0], n[2]); n[0] /= l; n[2] /= l;
+        const A0 = P(a[0], a[1], zb), B0 = P(b[0], b[1], zb), A1 = P(a[0], a[1], z1), B1 = P(b[0], b[1], z1);
+        for (const p of [A0, B0, B1, A0, B1, A1]) push(p, n);
+      }
+      const r = ring.map((p) => P(p[0], p[1], z1));
+      for (const p of [r[0], r[1], r[2], r[0], r[2], r[3]]) push(p, [0, 1, 0]);
+      boxDraws.push({ start, count: verts.length / 8 - start, color: [0.86, 0.87, 0.89, 1] });
+      const c = G.centroid(ring);
+      labels.push({ text: el.id + '  ' + el.name, pos: P(c[0], c[1], z1 + 4), kind: 'building' });
+    }
+    boxBuf = boxBuf || gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, boxBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts.length ? verts : [0, 0, 0, 0, 1, 0, 0, 0]), gl.DYNAMIC_DRAW);
+    boxCount = verts.length / 8;
+  }
+
+  // ---------------------------------------------------------------------------------- drape texture
+  function makeRelief(t) {
+    const c = document.createElement('canvas');
+    c.width = t.nx; c.height = t.ny;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(t.nx, t.ny);
+    const zmin = site.elevMinFt - 20, zmax = site.elevMaxFt + 20;
+    for (let j = 0; j < t.ny; j++) for (let i = 0; i < t.nx; i++) {
+      const k = j * t.nx + i;
+      const zl = t.data[j * t.nx + Math.max(0, i - 1)], zr = t.data[j * t.nx + Math.min(t.nx - 1, i + 1)];
+      const zd = t.data[Math.max(0, j - 1) * t.nx + i], zu = t.data[Math.min(t.ny - 1, j + 1) * t.nx + i];
+      const gx = (zr - zl) / (2 * t.cellFt) * 2, gy = (zu - zd) / (2 * t.cellFt) * 2;
+      const shade = Math.max(0, Math.min(1, 0.65 + (-gx * 0.7071 + gy * 0.7071) * 1.2));
+      const u = Math.max(0, Math.min(1, (t.data[k] - zmin) / (zmax - zmin)));
+      // low = soft green, high = warm tan
+      const r = 118 + 92 * u, g = 140 + 50 * u, b = 98 + 40 * u;
+      const o = ((t.ny - 1 - j) * t.nx + i) * 4; // canvas row 0 = north
+      img.data[o] = r * shade; img.data[o + 1] = g * shade; img.data[o + 2] = b * shade; img.data[o + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  function drawDrape() {
+    const ext = site.extent;
+    const maxTex = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), 4096);
+    const w = ext.xMax - ext.xMin, h = ext.yMax - ext.yMin;
+    const W = w >= h ? maxTex : Math.round((maxTex * w) / h), H = w >= h ? Math.round((maxTex * h) / w) : maxTex;
+    drapeCanvas.width = W; drapeCanvas.height = H;
+    drapeScale = W / w; // px per ft
+    const ctx = drapeCanvas.getContext('2d');
+    const X = (x) => (x - ext.xMin) * drapeScale, Y = (y) => (ext.yMax - y) * drapeScale;
+    const px = (ft) => Math.max(1, ft * drapeScale);
+    const path = (ring, close = true) => {
+      ctx.beginPath();
+      ring.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))));
+      if (close) ctx.closePath();
+    };
+    const polyPath = (poly) => { ctx.beginPath(); for (const r of [poly.outer, ...(poly.holes || [])]) { r.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])))); ctx.closePath(); } };
+
+    // base layer
+    ctx.fillStyle = '#5c6a55';
+    ctx.fillRect(0, 0, W, H);
+    const useAerial = V.baseLayer === 'aerial' && aerialImg;
+    if (useAerial) {
+      const im = site.imagery;
+      ctx.drawImage(aerialImg, X(im.xMinFt), Y(im.yMaxFt), (im.xMaxFt - im.xMinFt) * drapeScale, (im.yMaxFt - im.yMinFt) * drapeScale);
+      ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(reliefCanvas, 0, 0, W, H);
+    }
+
+    // cut / fill
+    const d = LD.app.display.grading;
+    if (d && V.showCutFill) {
+      const s = d.spec;
+      const c = document.createElement('canvas');
+      c.width = s.nx; c.height = s.ny;
+      const cx = c.getContext('2d'), img = cx.createImageData(s.nx, s.ny);
+      for (let j = 0; j < s.ny; j++) for (let i = 0; i < s.nx; i++) {
+        const k = j * s.nx + i, diff = d.proposed[k] - d.existing[k];
+        const o = ((s.ny - 1 - j) * s.nx + i) * 4;
+        if (d.wallHeight && d.wallHeight[k] > 0.5) { img.data[o] = 255; img.data[o + 1] = 230; img.data[o + 2] = 40; img.data[o + 3] = 255; continue; }
+        if (Math.abs(diff) < 0.1) continue;
+        const a = Math.min(1, Math.abs(diff) / 12);
+        if (diff > 0) { img.data[o] = 40; img.data[o + 1] = 110; img.data[o + 2] = 235; }
+        else { img.data[o] = 225; img.data[o + 1] = 60; img.data[o + 2] = 45; }
+        img.data[o + 3] = Math.round(70 + 150 * a);
+      }
+      cx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(c, X(s.x0), Y(s.y0 + s.ny * s.cellFt), s.nx * s.cellFt * drapeScale, s.ny * s.cellFt * drapeScale);
+      ctx.imageSmoothingEnabled = true;
+    }
+
+    const F = site.features;
+    for (const it of (F.floodplain && F.floodplain.items) || []) { polyPath(it.polygon); ctx.fillStyle = 'rgba(59,130,246,0.28)'; ctx.fill('evenodd'); }
+    for (const it of (F.wetlands && F.wetlands.items) || []) {
+      polyPath(it.polygon); ctx.fillStyle = 'rgba(45,212,191,0.35)'; ctx.fill('evenodd');
+      ctx.strokeStyle = 'rgba(45,212,191,0.95)'; ctx.lineWidth = 3; ctx.stroke();
+    }
+    for (const it of (F.streams && F.streams.items) || []) { path(it.line, false); ctx.strokeStyle = '#4ea8ff'; ctx.lineWidth = 5; ctx.stroke(); }
+    for (const it of (F.roads && F.roads.items) || []) {
+      path(it.centerline, false);
+      ctx.lineCap = 'round';
+      if (!useAerial) { ctx.strokeStyle = '#4a4d52'; ctx.lineWidth = px(24); ctx.stroke(); }
+      ctx.setLineDash([px(12), px(10)]); ctx.strokeStyle = 'rgba(250,204,21,0.9)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    }
+    for (const it of (F.buildings && F.buildings.items) || []) { polyPath(it.footprint); ctx.fillStyle = 'rgba(156,163,175,0.8)'; ctx.fill('evenodd'); }
+
+    // setbacks and parcel
+    ctx.lineJoin = 'round';
+    for (const p of site.parkingEnvelope) { polyPath(p); ctx.setLineDash([10, 8]); ctx.strokeStyle = 'rgba(163,230,53,0.95)'; ctx.lineWidth = 3; ctx.stroke(); }
+    for (const p of site.buildingEnvelope) { polyPath(p); ctx.setLineDash([18, 10]); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 5; ctx.stroke(); }
+    ctx.setLineDash([]);
+    path(site.parcelRing); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 7; ctx.stroke();
+
+    // design elements
+    const failing = new Set();
+    const ck = LD.app.state && LD.app.state.checks;
+    if (ck && !ck.stale) for (const r of ck.rows) if (!r.pass && !r.informational) String(r.id).split('/').forEach((id) => failing.add(id));
+    for (const el of LD.app.state ? LD.app.state.elements : []) {
+      if (el.type === 'parking') {
+        const f = LD.commands.parkingField(el);
+        const c = LD.parking.criteriaFor(site);
+        const g = LD.parking.stallGeometry(f, c);
+        path(f.polygon); ctx.fillStyle = '#34373c'; ctx.fill();
+        for (const r of g.islands) { path(r); ctx.fillStyle = '#4f7a3a'; ctx.fill(); }
+        for (const r of g.adaAisles) { path(r); ctx.fillStyle = '#2f5fa8'; ctx.fill(); }
+        for (const r of g.adaStalls) { path(r); ctx.fillStyle = '#3b6fc4'; ctx.fill(); }
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = Math.max(1, px(0.6));
+        ctx.beginPath();
+        for (const [a, b] of g.lines) { ctx.moveTo(X(a[0]), Y(a[1])); ctx.lineTo(X(b[0]), Y(b[1])); }
+        ctx.stroke();
+        path(f.polygon); ctx.strokeStyle = failing.has(el.id) ? '#ef4444' : '#d1d5db'; ctx.lineWidth = failing.has(el.id) ? 6 : 2; ctx.stroke();
+      } else {
+        const ring = LD.commands.elementRing(el);
+        const pad = G.rectRing(el.cxFt, el.cyFt, el.widthFt + 20, el.depthFt + 20, el.rotationDeg);
+        path(pad); ctx.fillStyle = 'rgba(200,200,200,0.35)'; ctx.fill();
+        path(ring); ctx.fillStyle = '#d9dbe0'; ctx.fill();
+        ctx.strokeStyle = failing.has(el.id) ? '#ef4444' : '#9ca3af'; ctx.lineWidth = failing.has(el.id) ? 8 : 3; ctx.stroke();
+      }
+    }
+
+    tex = tex || gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drapeCanvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    if (isGL2) {
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      const an = gl.getExtension('EXT_texture_filter_anisotropic');
+      if (an) gl.texParameterf(gl.TEXTURE_2D, an.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(an.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    } else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+
+  // ---------------------------------------------------------------------------------- rendering
+  V.render = function () {
+    if (needsRender) return;
+    needsRender = true;
+    requestAnimationFrame(draw);
+  };
+
+  function camMatrix() {
+    const dpr = window.devicePixelRatio || 1;
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+    if (canvas.width !== Math.round(cw * dpr) || canvas.height !== Math.round(ch * dpr)) { canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); }
+    const c = V.cam, t = c.target;
+    const eye = [t[0] + c.dist * Math.cos(c.pitch) * Math.sin(c.yaw), t[1] + c.dist * Math.sin(c.pitch), t[2] + c.dist * Math.cos(c.pitch) * Math.cos(c.yaw)];
+    const up = c.pitch > 1.45 ? [-Math.sin(c.yaw), 0, -Math.cos(c.yaw)] : [0, 1, 0];
+    const proj = M.persp(0.8, cw / Math.max(1, ch), c.dist / 200, c.dist * 20);
+    return { mvp: M.mul(proj, M.lookAt(eye, t, up)), cw, ch };
+  }
+
+  function bindAttribs(buf) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.enableVertexAttribArray(loc.aPos); gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 32, 0);
+    gl.enableVertexAttribArray(loc.aNrm); gl.vertexAttribPointer(loc.aNrm, 3, gl.FLOAT, false, 32, 12);
+    gl.enableVertexAttribArray(loc.aUv); gl.vertexAttribPointer(loc.aUv, 2, gl.FLOAT, false, 32, 24);
+  }
+
+  function draw() {
+    needsRender = false;
+    if (!gl) return;
+    const { mvp, cw, ch } = camMatrix();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!site || !terrainBuf) { labelsEl.innerHTML = ''; return; }
+    gl.useProgram(prog);
+    gl.uniformMatrix4fv(loc.uMVP, false, mvp);
+    const lx = -0.45, ly = 0.8, lz = -0.4, ll = Math.hypot(lx, ly, lz);
+    gl.uniform3f(loc.uLight, lx / ll, ly / ll, lz / ll);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(loc.uTex, 0);
+    // terrain
+    bindAttribs(terrainBuf);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainIdx);
+    gl.uniform1f(loc.uUseTex, 1); gl.uniform4f(loc.uColor, 1, 1, 1, 1);
+    gl.drawElements(gl.TRIANGLES, terrainCount, gl.UNSIGNED_INT, 0);
+    // buildings
+    if (boxCount) {
+      bindAttribs(boxBuf);
+      gl.uniform1f(loc.uUseTex, 0);
+      for (const b of boxDraws) { gl.uniform4fv(loc.uColor, b.color); gl.drawArrays(gl.TRIANGLES, b.start, b.count); }
+    }
+    // labels
+    labelsEl.innerHTML = '';
+    for (const l of labels) {
+      const p = l.pos;
+      const x = mvp[0] * p[0] + mvp[4] * p[1] + mvp[8] * p[2] + mvp[12];
+      const y = mvp[1] * p[0] + mvp[5] * p[1] + mvp[9] * p[2] + mvp[13];
+      const w = mvp[3] * p[0] + mvp[7] * p[1] + mvp[11] * p[2] + mvp[15];
+      if (w <= 0) continue;
+      const sx = ((x / w + 1) / 2) * cw, sy = ((1 - y / w) / 2) * ch;
+      if (sx < -50 || sy < -20 || sx > cw + 50 || sy > ch + 20) continue;
+      const d = document.createElement('div');
+      d.className = 'label ' + l.kind;
+      d.textContent = l.text;
+      d.style.left = sx + 'px'; d.style.top = sy + 'px';
+      labelsEl.appendChild(d);
+    }
+  }
+
+  // ---------------------------------------------------------------------------------- mouse / touch
+  function attachControls() {
+    let drag = null;
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    canvas.addEventListener('pointerdown', (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey || e.button === 1 };
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX; drag.y = e.clientY;
+      const c = V.cam;
+      if (drag.pan) {
+        const s = c.dist / Math.max(300, canvas.clientHeight) * 1.1;
+        const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw);
+        // screen-right on the ground is (cos yaw, -sin yaw); screen-up is (-sin yaw, -cos yaw)
+        c.target[0] -= (dx * cy + dy * sy) * s;
+        c.target[2] -= (-dx * sy + dy * cy) * s;
+      } else {
+        c.yaw -= dx * 0.006;
+        c.pitch = Math.max(0.12, Math.min(1.55, c.pitch + dy * 0.005));
+      }
+      V.render();
+    });
+    const end = () => { drag = null; };
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      V.cam.dist = Math.max(80, Math.min(40000, V.cam.dist * Math.exp(e.deltaY * 0.0012)));
+      V.render();
+    }, { passive: false });
+  }
+
+  V.setExaggeration = function (v) {
+    const old = V.exaggeration;
+    V.exaggeration = v;
+    V.cam.target[1] *= v / old;
+    V.refresh();
+  };
+})();
+
+</script>
+<script>/* ui.js */
+/* ui.js: the page: loading packages, the side panel (Design / Site / Test), test-mode forms. */
+'use strict';
+(function () {
+  const app = LD.app, F = LD.fmt, esc = LD.fmt.esc;
+  const $ = (id) => document.getElementById(id);
+  const UI = (LD.ui = { activeTab: 'design', testResults: {} });
+
+  // ------------------------------------------------------------------------------- loading
+  function busy(on, text) {
+    $('busy').hidden = !on;
+    if (text) $('busyText').textContent = text;
+  }
+
+  UI.loadPackageObject = function (pkg, label) {
+    const site = LD.site.load(pkg);
+    app.setSite(site);
+    LD.view.setSite(site);
+    $('emptyState').hidden = true;
+    $('viewTools').hidden = false;
+    $('legend').hidden = false;
+    $('siteName').textContent = site.meta.siteName + ' · ' + site.meta.municipality + ', ' + site.meta.county + ' County' + (label ? ' · ' + label : '');
+    $('baseLayer').value = LD.view.baseLayer;
+    $('baseLayer').querySelector('option[value=aerial]').disabled = !site.imagery;
+    renderAll();
+  };
+
+  function loadText(text, label) {
+    busy(true, 'Reading the site package…');
+    setTimeout(() => {
+      try {
+        UI.loadPackageObject(JSON.parse(text), label);
+      } catch (e) {
+        alert('Could not open that file.\n\n' + (e.userMessage || (e instanceof SyntaxError ? 'It is not valid JSON.' : e.message)));
+        console.error(e);
+      } finally { busy(false); }
+    }, 30);
+  }
+
+  function initLoading() {
+    $('loadBtn').onclick = () => $('fileInput').click();
+    $('fileInput').onchange = (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => loadText(r.result, f.name);
+      r.onerror = () => alert('Could not read that file.');
+      r.readAsText(f);
+      e.target.value = '';
+    };
+    // A package built into the page (published demo), else ?pkg=<same-site path> (local testing).
+    const emb = document.getElementById('embedded-site-package');
+    const q = new URLSearchParams(location.search).get('pkg');
+    if (emb && emb.textContent.trim()) loadText(emb.textContent, null);
+    else if (q && !/^[a-z]+:/i.test(q) && !q.startsWith('//')) {
+      busy(true, 'Loading ' + q + '…');
+      fetch(q).then((r) => (r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))).then((t) => loadText(t, null))
+        .catch((e) => { busy(false); alert('Could not load ' + q + ': ' + e.message); });
+    }
+  }
+
+  // ------------------------------------------------------------------------------- tabs
+  function showTab(name) {
+    UI.activeTab = name;
+    for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('active', b.dataset.tab === name);
+    for (const t of ['design', 'site', 'chat', 'test']) $('tab-' + t).hidden = t !== name;
+  }
+  UI.showTab = showTab;
+
+  // ------------------------------------------------------------------------------- Design tab
+  function renderDesign() {
+    const el = $('tab-design');
+    if (!app.site) { el.innerHTML = '<p class="muted">No site loaded.</p>'; return; }
+    const st = app.state;
+    let h = '<h2>Elements</h2>';
+    if (!st.elements.length) h += '<p class="muted small">Nothing placed yet. Turn on <b>Test mode</b> (top right) to add a building or parking with the command buttons' + (LD.chat ? ', or ask Claude in the Chat tab' : '') + '.</p>';
+    for (const e of st.elements) {
+      const d = LD.commands.describeEl(e);
+      if (e.type === 'building') {
+        h += `<div class="card"><h3>${esc(e.id)} · ${esc(e.name)} ${d.insideBuildableArea ? '<span class="pill ok">inside setbacks</span>' : '<span class="pill bad">crosses setback</span>'}</h3>
+          <table class="kv"><tr><td>Size</td><td>${F.n(e.widthFt)} x ${F.n(e.depthFt)} ft · ${F.sf(d.footprintSf)} (${F.ac(d.footprintSf / 43560)})</td></tr>
+          <tr><td>Height</td><td>${F.ft(e.heightFt, 0)}</td></tr>
+          <tr><td>Finished floor</td><td>${F.ft(e.padElevFt, 2)} <span class="muted small">(${{ auto: 'follows ground', set: 'set by hand', balanced: 'balances earthwork' }[e.padElevSource] || ''})</span></td></tr>
+          <tr><td>Existing ground under it</td><td>${F.ft(d.existingGroundAvgFt)} average</td></tr>
+          <tr><td>Centre (E, N)</td><td class="small">${F.n(e.cxFt, 0)}, ${F.n(e.cyFt, 0)} · rotated ${F.n(e.rotationDeg, 1)}°</td></tr></table></div>`;
+      } else {
+        h += `<div class="card"><h3>${esc(e.id)} · ${esc(e.name)} ${d.insideParkingArea ? '<span class="pill ok">inside setbacks</span>' : '<span class="pill bad">crosses setback</span>'}</h3>
+          <table class="kv"><tr><td>Stalls</td><td><b>${F.n(d.stallsTotal)}</b> (${F.n(d.stallsStandard)} standard, ${d.stallsAccessible} accessible incl. ${d.stallsVanAccessible} van)</td></tr>
+          <tr><td>Size</td><td>${F.n(e.lengthFt)} x ${F.n(d.depthFt)} ft, ${e.rows} rows · ${F.sf(d.footprintSf)}</td></tr>
+          <tr><td>Surface at centre</td><td>${F.ft(e.elevFt, 2)} at ${d.slopePct}% slope</td></tr>
+          <tr><td>Existing ground</td><td>${F.ft(d.existingGroundAvgFt)} average</td></tr></table></div>`;
+      }
+    }
+    const g = st.grading;
+    if (g) {
+      h += `<h2>Earthwork ${g.stale ? '<span class="pill warn">out of date: run grading again</span>' : ''}</h2>
+        <div class="card ${g.stale ? 'stale' : ''}">
+        <div class="stats"><div><b>${F.n(g.cutCy)}</b><span>cut, CY</span></div><div><b>${F.n(g.fillCy)}</b><span>fill, CY</span></div>
+        <div><b class="${g.netCy >= 0 ? '' : 'fail'}">${F.n(Math.abs(g.netCy))}</b><span>net ${g.netCy >= 0 ? 'surplus' : 'shortfall'}, CY</span></div></div>
+        <table class="kv small">
+        <tr><td>Building pads</td><td>${F.n(g.byPart.buildingPads.cutCy)} cut / ${F.n(g.byPart.buildingPads.fillCy)} fill CY</td></tr>
+        <tr><td>Parking</td><td>${F.n(g.byPart.parking.cutCy)} cut / ${F.n(g.byPart.parking.fillCy)} fill CY</td></tr>
+        <tr><td>Side slopes (${g.slopeRatio}:1)</td><td>${F.n(g.byPart.sideSlopes.cutCy)} cut / ${F.n(g.byPart.sideSlopes.fillCy)} fill CY</td></tr>
+        <tr><td>Deepest cut / fill</td><td>${F.ft(g.maxCutFt)} / ${F.ft(g.maxFillFt)}</td></tr>
+        <tr><td>Disturbed area</td><td>${F.ac(g.disturbedAc)}</td></tr>
+        <tr><td>Retaining walls</td><td>${g.walls.length ? g.walls.map((w) => `${F.n(w.lengthFt)} ft long, up to ${F.ft(w.maxHeightFt)}`).join('<br>') : 'none'}</td></tr>
+        <tr><td>Grading off the property</td><td>${g.offsiteGradingSf ? `<span class="fail">${F.sf(g.offsiteGradingSf)}, up to ${F.ft(g.offsiteMaxDepthFt)}</span>` : 'none'}</td></tr>
+        </table><p class="muted small">Net = cut x (1 - ${g.shrinkPct}% shrink) - fill. ${g.gridCellFt} ft grid. Concept-level.</p></div>`;
+    }
+    const c = st.checks;
+    if (c) {
+      h += `<h2>Zoning checks ${c.stale ? '<span class="pill warn">out of date: check again</span>' : c.failing ? `<span class="pill bad">${c.failing} fail</span>` : '<span class="pill ok">all pass</span>'}</h2>
+        <div class="card ${c.stale ? 'stale' : ''}"><table class="grid"><tr><th></th><th>Check</th><th>Result</th><th>Section</th></tr>` +
+        c.rows.map((r) => `<tr><td class="${r.informational ? 'info' : r.pass ? 'pass' : 'fail'}">${r.informational ? '!' : r.pass ? '✓' : '✗'}</td>
+          <td>${esc(r.id)}<br><span class="muted small">${esc(r.check)}</span></td><td class="small">${esc(r.message)}</td><td class="small">${r.section ? '§ ' + esc(r.section) : ''}</td></tr>`).join('') +
+        `</table>${c.zoningVerified ? '' : '<p class="muted small">Zoning values are from an unofficial copy of the code: verify with the township.</p>'}</div>`;
+    }
+    h += '<h2>History</h2>';
+    if (!app.history.length) h += '<p class="muted small">Changes appear here, each with an Undo button.</p>';
+    for (const e of app.history.slice().reverse())
+      h += `<div class="hist"><span class="src">${esc(e.source)}</span><div class="txt"><b>${esc(e.title)}</b> — ${esc(e.summary)}</div>
+        <button class="btn small" data-undo="${e.seq}" title="Undo this step (and anything after it)">Undo</button></div>`;
+    el.innerHTML = h;
+    for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => UI.undo(Number(b.dataset.undo));
+  }
+
+  UI.undo = function (seq) {
+    const later = app.history.filter((h) => h.seq > seq).length;
+    if (later && !confirm(`Undoing this step also undoes the ${later} step${later > 1 ? 's' : ''} after it. Continue?`)) return false;
+    const r = LD.commands.undoTo(seq);
+    if (!r.ok) alert(r.error);
+    return r.ok;
+  };
+
+  // ------------------------------------------------------------------------------- Site tab
+  function renderSite() {
+    const el = $('tab-site');
+    const s = app.site;
+    if (!s) { el.innerHTML = '<p class="muted">No site loaded.</p>'; return; }
+    const md = s.meta, z = s.zoning, pk = s.pkg;
+    const fronts = [...new Set(s.edges.filter((e) => e.type === 'front').map((e) => e.road))];
+    let h = `<h2>Site</h2><table class="kv">
+      <tr><td>Address</td><td>${esc(md.address)}</td></tr>
+      <tr><td>Municipality</td><td>${esc(md.municipality)}, ${esc(md.county)} County, ${esc(md.state)}</td></tr>
+      <tr><td>Parcel</td><td>${esc(md.parcelId)}</td></tr>
+      <tr><td>Area</td><td>${F.ac(s.parcelAreaSf / 43560)}${pk.parcel.recordAreaAc ? ` <span class="muted small">(record ${F.ac(pk.parcel.recordAreaAc)})</span>` : ''}</td></tr>
+      <tr><td>Road frontage</td><td>${fronts.length ? esc(fronts.join(', ')) : 'none found'}</td></tr>
+      <tr><td>Ground on parcel</td><td>${F.ft(s.elevMinFt)} to ${F.ft(s.elevMaxFt)} (NAVD88)</td></tr>
+      <tr><td>Terrain grid</td><td>${pk.terrain.cellSizeFt} ft cells, ${F.n(pk.terrain.cols)} x ${F.n(pk.terrain.rows)}</td></tr>
+      <tr><td>Buildable area</td><td>${F.ac(pk.derived.buildingEnvelopeAreaAc, 1)} buildings · ${F.ac(pk.derived.parkingEnvelopeAreaAc, 1)} parking</td></tr>
+      </table>`;
+    h += `<h2>Zoning: ${esc(z.district || 'unknown')} ${esc(z.districtName || '')} ${z.verified ? '<span class="pill ok">verified</span>' : '<span class="pill warn">not verified</span>'}</h2>
+      <table class="grid"><tr><th>Limit</th><th class="num">Value</th><th>Section</th></tr>`;
+    const labels = { frontSetbackFt: 'Front setback', sideSetbackFt: 'Side setback', rearSetbackFt: 'Rear setback', residentialSeparationFt: 'From residential district',
+      maxHeightFt: 'Max height', maxLotCoveragePct: 'Max lot coverage', minLotAreaAc: 'Min lot area', minLotWidthFt: 'Min lot width', minLandscapedPct: 'Min landscaped',
+      parkingSetbackFromRowFt: 'Parking from road ROW', parkingSetbackSideRearFt: 'Parking from side/rear', parkingSetbackFromResidentialFt: 'Parking from residential',
+      stallWidthFt: 'Stall width', stallLengthFt: 'Stall length', aisleWidthFt: 'Aisle width', maxParkingGradePct: 'Max parking grade' };
+    for (const [k, v] of Object.entries(z.values || {})) {
+      const unit = k.endsWith('Pct') ? '%' : k.endsWith('Ac') ? ' ac' : ' ft';
+      h += `<tr title="${esc(v.note || '')}"><td>${esc(labels[k] || k)}</td><td class="num">${v.value == null ? '<span class="muted">unknown</span>' : F.n(v.value, v.value % 1 ? 1 : 0) + unit}</td><td class="small">${v.section ? '§ ' + esc(v.section) : esc(v.note || '')}</td></tr>`;
+    }
+    h += '</table>';
+    if ((z.parkingRatios || []).length) h += '<p class="small muted">Parking ratios: ' + z.parkingRatios.map((r) => `${esc(r.use)}: ${esc(r.rule)} (§ ${esc(r.section)})`).join('; ') + '</p>';
+    h += '<h2>Data found</h2><table class="grid">';
+    const names = { roads: 'Roads', buildings: 'Existing buildings', streams: 'Streams', wetlands: 'Wetlands', floodplain: 'Floodplain' };
+    for (const [k, n] of Object.entries(names)) {
+      const f = s.features[k] || { status: 'skipped', items: [] };
+      const st = f.status === 'found' ? `<span class="pass">${f.items.length} found</span>` : f.status === 'none_found' ? 'none here' : `<span class="fail">unknown</span> <span class="muted small">${esc(f.reason || '')}</span>`;
+      h += `<tr><td>${n}</td><td>${st}</td></tr>`;
+    }
+    h += `<tr><td>Aerial photo</td><td>${s.imagery ? esc(s.imagery.source) + ' (' + esc(s.imagery.dataDate || 'date unknown') + ')' : 'not included'}</td></tr></table>`;
+    if ((md.warnings || []).length) h += '<h2>Things to know</h2><ul class="warn">' + md.warnings.map((w) => `<li>${esc(w)}</li>`).join('') + '</ul>';
+    h += '<h2>Sources</h2><ul class="warn small">' + (md.sources || []).map((x) => `<li>${esc(x.name)}${x.dataDate ? ' · ' + esc(x.dataDate) : ''}</li>`).join('') + '</ul>';
+    h += `<p class="muted small">Package made ${esc((md.createdAt || '').slice(0, 10))}. Coordinates: PA South State Plane (EPSG:2272), US survey feet.</p>`;
+    el.innerHTML = h;
+  }
+
+  // ------------------------------------------------------------------------------- Test tab
+  function defaultFor(cmd, key) {
+    const els = app.state ? app.state.elements : [];
+    if (cmd.name === 'setPadElevation' && key === 'elevationFt') {
+      const b = els.find((e) => e.id === 'B1') || els[0];
+      return b ? LD.round((b.type === 'building' ? b.padElevFt : b.elevFt) + 2, 1) : '';
+    }
+    const v = cmd.testInput ? cmd.testInput[key] : undefined;
+    return v == null ? '' : v;
+  }
+
+  function renderTest() {
+    const el = $('tab-test');
+    if (!app.site) { el.innerHTML = '<p class="muted">Load a site package first.</p>'; return; }
+    let h = `<p class="small muted">Each command below is exactly what Claude will call from the chat. Values are pre-filled; change them and press Run.
+      Coordinates are PA South State Plane feet (blank = let the app choose).</p>
+      <div class="card"><h3>Self-checks <span class="pill">hand calculations</span></h3>
+      <p class="small muted">Runs the engineering math against answers worked out by hand.</p>
+      <button class="btn small" id="runChecks">Run self-checks</button><div id="checkOut"></div></div>`;
+    for (const cmd of LD.commands.list) {
+      h += `<div class="card" id="card-${cmd.name}"><h3>${esc(cmd.title)} <span class="pill">${cmd.name}</span>${cmd.readOnly ? ' <span class="pill">read-only</span>' : ''}</h3>
+        <div class="small muted">${esc(cmd.description)}</div><form class="cmd" data-cmd="${cmd.name}">`;
+      const props = cmd.inputSchema.properties || {};
+      const req = cmd.inputSchema.required || [];
+      for (const [k, s] of Object.entries(props)) {
+        const lab = esc(k) + (req.includes(k) ? ' *' : '');
+        const full = s.type === 'string' && !s.enum && !s['x-ref'] ? ' full' : '';
+        let field;
+        if (s['x-ref']) {
+          const els = app.state.elements.filter((e) => s['x-ref'] !== 'building' || e.type === 'building');
+          const dv = String(defaultFor(cmd, k));
+          field = `<select name="${k}">${req.includes(k) ? '' : '<option value="">(none)</option>'}${els.map((e) => `<option ${e.id === dv ? 'selected' : ''} value="${e.id}">${e.id} · ${esc(e.name)}</option>`).join('')}</select>`;
+        } else if (s.enum) {
+          const dv = defaultFor(cmd, k);
+          field = `<select name="${k}"><option value="">(none)</option>${s.enum.map((v) => `<option ${v === dv ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
+        } else {
+          field = `<input name="${k}" value="${esc(defaultFor(cmd, k))}" ${s.type === 'number' || s.type === 'integer' ? 'inputmode="decimal"' : ''} placeholder="${s.default !== undefined ? 'default ' + s.default : ''}">`;
+        }
+        h += `<label class="${full}" title="${esc(s.description || '')}">${lab}${field}</label>`;
+      }
+      h += `<div class="full"><button class="btn small primary" type="submit">Run ${esc(cmd.title.toLowerCase())}</button></div></form>
+        <div class="out" id="out-${cmd.name}">${UI.testResults[cmd.name] || ''}</div></div>`;
+    }
+    el.innerHTML = h;
+    $('runChecks').onclick = runSelfChecks;
+    if (UI.selfCheckHtml) $('checkOut').innerHTML = UI.selfCheckHtml;
+    for (const f of el.querySelectorAll('form.cmd')) f.onsubmit = (e) => { e.preventDefault(); runFromForm(f); };
+  }
+
+  function resultHtml(r) {
+    if (!r.ok) return `<div class="result err">✗ ${esc(r.error)}</div>`;
+    return `<div class="result ok">✓ ${esc(r.summary)}</div><details><summary>Details (what Claude receives)</summary><pre>${esc(JSON.stringify(r.data, null, 2))}</pre></details>`;
+  }
+
+  function runFromForm(form) {
+    const name = form.dataset.cmd;
+    const input = {};
+    for (const f of form.elements) if (f.name) input[f.name] = f.value;
+    busy(true, 'Running ' + name + '…');
+    setTimeout(() => {
+      const t0 = performance.now();
+      const r = LD.commands.execute(name, input, 'test');
+      busy(false);
+      UI.testResults[name] = resultHtml(r) + `<div class="muted small">${Math.round(performance.now() - t0)} ms</div>`;
+      UI.lastResult = { name, r };
+      renderAll();
+      const out = $('out-' + name);
+      if (out) out.scrollIntoView({ block: 'nearest' });
+    }, 20);
+  }
+
+  function runSelfChecks() {
+    busy(true, 'Running self-checks…');
+    setTimeout(() => {
+      const res = LD.selfcheck.runAll();
+      busy(false);
+      const pass = res.filter((r) => r.pass).length;
+      UI.selfCheckHtml = `<p class="${pass === res.length ? 'pass' : 'fail'}"><b>${pass} of ${res.length} pass</b></p><table class="grid"><tr><th></th><th>Check</th><th>App result</th></tr>` +
+        res.map((r) => `<tr><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</td><td><b>${r.id}</b> ${esc(r.title)}<br><span class="muted small">Hand calc: ${esc(r.handCalc)}</span></td><td class="small">${esc(r.got)}</td></tr>`).join('') + '</table>';
+      UI.lastSelfCheck = res;
+      $('checkOut').innerHTML = UI.selfCheckHtml;
+    }, 20);
+  }
+
+  // ------------------------------------------------------------------------------- wiring
+  function renderAll() {
+    renderDesign();
+    renderSite();
+    if (!$('tab-test').hidden || UI.testMode) renderTest();
+    if (LD.chat && LD.chat.render) LD.chat.render();
+  }
+  UI.renderAll = renderAll;
+
+  function init() {
+    try {
+      LD.view.init($('viewport'));
+    } catch (e) {
+      $('emptyState').innerHTML = '<h1>3D view not available</h1><p>' + esc(e.message) + '</p>';
+    }
+    for (const b of document.querySelectorAll('#tabs button')) b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'test') renderTest(); };
+    $('testToggle').onchange = (e) => {
+      UI.testMode = e.target.checked;
+      $('testTabBtn').hidden = !UI.testMode;
+      if (UI.testMode) { renderTest(); showTab('test'); } else if (UI.activeTab === 'test') showTab('design');
+    };
+    $('resetView').onclick = () => LD.view.resetView();
+    $('topView').onclick = () => LD.view.topView();
+    $('baseLayer').onchange = (e) => { LD.view.baseLayer = e.target.value; LD.view.refresh(); };
+    $('cutFill').onchange = (e) => { LD.view.showCutFill = e.target.checked; LD.view.refresh(); };
+    $('exag').oninput = (e) => { $('exagVal').textContent = e.target.value; LD.view.setExaggeration(Number(e.target.value)); };
+    app.on((kind) => {
+      if (kind === 'change') { LD.view.refresh(); renderAll(); }
+    });
+    if (LD.chat && LD.chat.init) LD.chat.init();
+    renderAll();
+    initLoading();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+</script>
+
+</body></html>
